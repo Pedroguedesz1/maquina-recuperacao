@@ -522,9 +522,9 @@ tr.sel td{background:var(--accent-soft)}
    leadWebhook      endpoint que recebe os leads em JSON (CRM, n8n, Make, Zapier). Vazio = só salva no navegador
 */
 var CONFIG = {
-  /* TEMPORÁRIO: enquanto o gateway não está pronto, o botão de assinar leva direto ao app.
-     Antes de anunciar, troque pelo link do checkout (ex.: "https://www.asaas.com/c/xxxx"). */
-  checkoutUrl: "app.html",
+  /* Link de pagamento do Asaas. ATENÇÃO: este é o link do SANDBOX (teste, nada é cobrado).
+     Antes de anunciar, troque pelo link da conta real do Asaas. */
+  checkoutUrl: "https://sandbox.asaas.com/c/iqcrsk3f6ecfcai3",
   whatsappClick: "",
   leadWebhook: "",
   supabaseUrl: "https://msrilojbncclwksphjjt.supabase.co",
@@ -599,7 +599,7 @@ function checkoutHref(){
 function wireBuy(root){
   (root||document).querySelectorAll('[data-buy]').forEach(function(a){
     if(a._wired) return; a._wired = true;
-    if(CONFIG.checkoutUrl){ a.href = checkoutHref(); if(/^https?:/i.test(CONFIG.checkoutUrl)){ a.target = '_blank'; a.rel = 'noopener'; } }
+    if(CONFIG.checkoutUrl){ a.href = checkoutHref(); a.removeAttribute('target'); }
     a.addEventListener('click', function(e){
       track('checkout_click', {origem: a.getAttribute('data-buy')});
       if(!CONFIG.checkoutUrl){ e.preventDefault(); var w = a.parentNode.querySelector('[data-nolink]'); if(w) w.hidden = false; else toast('Link de pagamento ainda não configurado.'); }
@@ -621,6 +621,18 @@ document.addEventListener('click', function(e){
   var to = a.getAttribute('data-go');
   if(to === 'lp' && location.hash === '#maquina'){ e.preventDefault(); location.hash = 'inicio'; }
 });
+
+/* ---------- rascunho salvo no aparelho (não perde o que foi digitado) ---------- */
+var DRAFT_KEY = 'click_lp_rascunho_v1';
+function draftLoad(){ try{ return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; }catch(e){ return {}; } }
+function draftSave(part, val){ try{ var d = draftLoad(); d[part] = val; localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); }catch(e){} }
+function draftClear(part){ try{ var d = draftLoad(); delete d[part]; localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); }catch(e){} }
+var DRAFT = draftLoad();
+function keepFields(part, ids){
+  var saved = DRAFT[part] || {};
+  ids.forEach(function(id){ var el = $(id); if(!el) return; if(saved[id] != null && saved[id] !== '') el.value = saved[id];
+    el.addEventListener('input', function(){ var cur = draftLoad()[part] || {}; cur[id] = el.value; draftSave(part, cur); }); });
+}
 
 /* ---------- calculadora ---------- */
 var calcPct = 0.05, calcTicket = 45;
@@ -645,11 +657,14 @@ function calc(fromBtn){
 }
 $('cGo').addEventListener('click', function(){ calc(true); });
 ['cBase','cPed','cTick'].forEach(function(id){ $(id).addEventListener('keydown', function(e){ if(e.key === 'Enter') calc(true); }); });
+keepFields('calc', ['cBase','cPed','cTick']);
 calc(false);
 
 /* ---------- Click completa (LP) ---------- */
 maskPhone($('fuZap'));
 $('fullOpen').addEventListener('click', function(){ track('click_full_open', {origem:'lp'}); $('fullOpen').hidden = true; $('fullForm').hidden = false; $('fuNome').focus(); });
+keepFields('full', ['fuNome','fuZap','fuRest']);
+if(DRAFT.full && (DRAFT.full.fuNome || DRAFT.full.fuZap || DRAFT.full.fuRest)){ $('fullOpen').hidden = true; $('fullForm').hidden = false; }
 $('fullForm').addEventListener('submit', function(e){
   e.preventDefault();
   var n = $('fuNome'), z = $('fuZap'), r = $('fuRest'), bad = null;
@@ -700,10 +715,21 @@ var App = {
   filter:'all', sort:'days', selected:{}, clients:[], stats:null,
   root:null,
 
-  start:function(){ this.started = true; this.root = $('appRoot'); track('onboarding_start'); this.render(); },
+  start:function(){
+    this.started = true; this.root = $('appRoot');
+    var sv = DRAFT.demo;
+    if(sv && sv.data){
+      Object.assign(this.data, sv.data); this.step = Math.min(sv.step || 0, 6); if(sv.camp) this.camp = sv.camp;
+      if(this.step >= 5){ this.build(); this.step = 6; }
+      track('onboarding_resume', {passo:this.step});
+    } else track('onboarding_start');
+    this.render();
+  },
+  persist:function(){ draftSave('demo', {step:this.step, data:this.data, camp:this.camp || null}); },
+  reset:function(){ draftClear('demo'); this.step = 0; this.camp = null; this.data = {restaurante:'', canal:'', tamanho:'', acompanha:'', nome:'', whatsapp:'', cidade:'', email:''}; this.render(); window.scrollTo(0,0); },
 
   render:function(){
-    var s = this.step;
+    var s = this.step; this.persist();
     if(s <= 4) return this.renderStep();
     if(s === 5) return this.renderAnalyzing();
     return this.renderDash();
@@ -754,13 +780,14 @@ var App = {
     });
     if(s === 0){
       var r = $('obRest');
-      r.addEventListener('input', function(){ d.restaurante = r.value; next.disabled = r.value.trim().length < 2; });
+      r.addEventListener('input', function(){ d.restaurante = r.value; next.disabled = r.value.trim().length < 2; self.persist(); });
       r.addEventListener('keydown', function(e){ if(e.key === 'Enter' && !next.disabled) self.go(); });
       setTimeout(function(){ try{ r.focus({preventScroll:true}); }catch(e){} }, 50);
     }
     if(next) next.addEventListener('click', function(){ self.go(); });
     if(s === 4){
       maskPhone($('ldZap'));
+      [['ldNome','nome'],['ldZap','whatsapp'],['ldCid','cidade'],['ldRest','restaurante'],['ldMail','email']].forEach(function(p){ $(p[0]).addEventListener('input', function(){ d[p[1]] = this.value; self.persist(); }); });
       $('leadF').addEventListener('submit', function(e){ e.preventDefault(); self.submitLead(); });
     }
   },
@@ -828,7 +855,7 @@ var App = {
     var html =
     '<div class="dash">'+
       '<div class="dash-head"><div><span class="eyebrow">'+esc(d.restaurante)+'</span><h2>'+esc(first(d.nome))+', você tem <span class="hl">'+nf.format(st.inativos)+' clientes</span> para recuperar.</h2>'+
-        '<p>Escolha quem você quer trazer de volta e envie a mensagem pelo WhatsApp.</p></div></div>'+
+        '<p>Escolha quem você quer trazer de volta e envie a mensagem pelo WhatsApp. <button type="button" class="linkbtn" id="redo" style="padding:0 0 0 6px;font-size:14px">Refazer o teste</button></p></div></div>'+
       '<div class="sim-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v.01M12 11v5"/></svg><span>Simulação feita com as suas respostas e nomes fictícios. Ao assinar, você importa a planilha dos seus clientes e vê os nomes e números reais.</span></div>'+
       '<div class="unlock"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><div><b>Quer ver os seus clientes de verdade?</b><span>Importe a lista do seu sistema (Cardápio Web, Anota AI, Saipos ou planilha) e veja quem sumiu, com nome e WhatsApp.</span></div><button type="button" class="btn" data-paywall="card"><span class="lk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>Importar minha planilha</button></div>'+
       '<div class="kpis">'+
@@ -854,6 +881,7 @@ var App = {
     '</div>';
     this.root.innerHTML = html;
     wireBuy(this.root);
+    if($('redo')) $('redo').addEventListener('click', function(){ self.reset(); });
     this.root.querySelectorAll('[data-paywall]').forEach(function(b){ b.addEventListener('click', function(){ openPaywall(b.getAttribute('data-paywall')); }); });
 
     var msgFull = 'Olá! Acabei de testar a Máquina de Recuperação e quero conhecer a Click completa.' + (d.restaurante ? ' Sou '+d.nome+', do '+d.restaurante+'.' : '');
@@ -935,6 +963,7 @@ var App = {
       camp.msg = $('mMsg').value; camp.cupom = $('mCup').value; camp.beneficio = $('mBen').value; camp.prazo = $('mPra').value;
       $('pvName').textContent = list[0].nome;
       $('pvMsg').innerHTML = esc(fill(camp.msg, list[0])) + '<span class="t">agora</span>';
+      self.persist();
     }
     ['mMsg','mCup','mBen','mPra'].forEach(function(id){ $(id).addEventListener('input', preview); });
     preview();
