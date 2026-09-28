@@ -629,6 +629,12 @@ function guess(headers, rows){
 }
 
 /* ---------- juntar linhas por cliente ---------- */
+function dateScore(rows, i){ var n = 0, tot = 0; rows.slice(0, 200).forEach(function(r){ var v = r[i]; if(v === '' || v == null) return; tot++; if(parseDate(v) != null) n++; }); return {ok:n, tot:tot}; }
+function bestDateCol(headers, rows, avoid){
+  var best = -1, bestN = 0;
+  headers.forEach(function(h, i){ if(avoid && avoid[i]) return; if(NOT_ORDER_DATE.test(norm(h))) return; var s = dateScore(rows, i); if(s.ok > bestN){ bestN = s.ok; best = i; } });
+  return best;
+}
 function aggregate(rows, map){
   var byKey = {}, skipped = 0, noName = 0, perRow = 0;
   rows.forEach(function(r){
@@ -770,7 +776,9 @@ function startMap(rows, fileName, sample){
   var body = rows.slice(hi + 1);
   var w = Math.max.apply(null, rows.slice(hi, hi + 50).map(function(r){ return r.length; }));
   while(headers.length < w) headers.push('Coluna ' + (headers.length + 1));
-  S.pending = {headers:headers, rows:body, file:fileName, sample:sample, map:guess(headers, body), restaurante: rest || (S.base && S.base.restaurante) || '', mode:S.mode};
+  var gm = guess(headers, body);
+  if(gm.data == null || dateScore(body, gm.data).ok === 0){ var used = {}; Object.keys(gm).forEach(function(k){ if(k !== 'data') used[gm[k]] = true; }); var bd = bestDateCol(headers, body, used); if(bd >= 0) gm.data = bd; }
+  S.pending = {headers:headers, rows:body, file:fileName, sample:sample, map:gm, restaurante: rest || (S.base && S.base.restaurante) || '', mode:S.mode};
   S.view = 'map'; render(); window.scrollTo(0,0);
 }
 
@@ -796,7 +804,15 @@ function renderMap(errMsg){
       prev.map(function(r){ return '<tr>'+P.headers.map(function(_, i){ var v = r[i]; if(v instanceof Date) v = fmtDate(v.getTime()); return '<td>'+esc(v)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div></div>'+
     '<div class="step-nav"><button type="button" class="back" id="mapBack">Voltar</button><button type="button" class="btn" id="mapGo">'+(PH ? 'Completar telefones' : 'Analisar meus clientes')+'</button></div>'+
   '</div>';
-  root.querySelectorAll('select[data-k]').forEach(function(s){ s.addEventListener('change', function(){ var v = s.value; if(v === '') delete P.map[s.getAttribute('data-k')]; else P.map[s.getAttribute('data-k')] = +v; }); });
+  function dateHint(){
+    var el = $('map_data'); if(!el) return; var f = el.closest('.f'), h = f.querySelector('.hint');
+    if(!h){ h = document.createElement('span'); h.className = 'hint'; f.appendChild(h); }
+    if(P.map.data == null){ h.textContent = ''; return; }
+    var sc = dateScore(P.rows, P.map.data);
+    h.innerHTML = sc.ok ? '<span style="color:var(--accent-text);font-weight:700">✓ '+nf.format(sc.ok)+' de '+nf.format(sc.tot)+' linhas com data válida</span>' : '<span style="color:var(--bad);font-weight:700">Essa coluna não tem datas. Escolha a coluna com a data do pedido.</span>';
+  }
+  root.querySelectorAll('select[data-k]').forEach(function(s){ s.addEventListener('change', function(){ var v = s.value; if(v === '') delete P.map[s.getAttribute('data-k')]; else P.map[s.getAttribute('data-k')] = +v; if(s.getAttribute('data-k') === 'data') dateHint(); }); });
+  dateHint();
   if($('mapRest')) $('mapRest').addEventListener('input', function(){ P.restaurante = this.value; });
   if($('mapSis')) $('mapSis').addEventListener('change', function(){ P.sistema = this.value; });
   $('mapBack').addEventListener('click', function(){ S.view = null; S.pending = null; if(PH){ S.mode = 'base'; render(); } else renderImport(); });
@@ -819,6 +835,11 @@ function runImport(){
   var P = S.pending;
   if(P.map.nome == null && P.map.tel == null) return renderMap('Escolha a coluna com o <b>nome</b> do cliente.');
   if(P.map.data == null) return renderMap('Escolha a coluna com a <b>data</b> do pedido. Sem ela não dá para saber quem sumiu.');
+  if(dateScore(P.rows, P.map.data).ok === 0){
+    var used = {}; Object.keys(P.map).forEach(function(k){ if(k !== 'data') used[P.map[k]] = true; });
+    var bd = bestDateCol(P.headers, P.rows, used);
+    if(bd >= 0){ P.map.data = bd; return renderMap('A coluna escolhida não tinha datas. Trocamos para <b>'+esc(P.headers[bd])+'</b>, que tem as datas dos pedidos. Confira e toque em analisar de novo.'); }
+  }
   var res = aggregate(P.rows, P.map);
   if(!res.clients.length) return renderMap('Nenhuma linha teve uma data válida na coluna escolhida. Confira se escolheu a coluna certa. As datas precisam estar como 25/09/2026 ou 2026-09-25.');
   S.base = {restaurante: (P.restaurante || '').trim() || 'Meu restaurante', sistema: P.sistema || null, arquivo:P.file, importadoEm:Date.now(), sample:!!P.sample, clients:res.clients, ticketPadrao:45, porPedido:res.rowsPerOrder, ignoradas:res.skipped + res.noName};
