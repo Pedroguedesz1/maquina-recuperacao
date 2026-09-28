@@ -434,7 +434,9 @@ tr.sel td{background:var(--accent-soft)}
 */
 var CONFIG = {
   whatsappClick: "",
-  modeloUrl: "modelo-clientes.csv"
+  modeloUrl: "modelo-clientes.csv",
+  supabaseUrl: "https://msrilojbncclwksphjjt.supabase.co",
+  supabaseKey: "sb_publishable_H7J9hYHDwXIz33PPvTLerQ_2Kx57zh0"
 };
 
 (function(){
@@ -452,6 +454,17 @@ function track(ev, data){ try{ window.dataLayer = window.dataLayer || []; window
 function toast(msg){ var t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(function(){ t.hidden = true; }, 2800); }
 function fmtDate(ms){ var d = new Date(ms); return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
 function today0(){ var d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
+
+/* ---------- métricas de uso para a Click (só números, nenhum dado de cliente final) ---------- */
+function reportUsage(evento, extra){
+  if(!CONFIG.supabaseUrl || !CONFIG.supabaseKey || !S.base || S.base.sample) return;
+  var st = stats();
+  var row = Object.assign({evento:evento, restaurante:S.base.restaurante || null, email:null, sistema:S.base.sistema || null,
+    total_clientes:st.total, ativos:st.ativo, inativos_15:st.d15, inativos_30:st.d30, inativos_60:st.d60,
+    receita_parada:Math.round(st.pot), mensagens:null}, extra || {});
+  try{ fetch(CONFIG.supabaseUrl.replace(/\/$/,'') + '/rest/v1/uso_app', {method:'POST', keepalive:true,
+    headers:{'apikey':CONFIG.supabaseKey, 'Content-Type':'application/json', 'Prefer':'return=minimal'}, body:JSON.stringify(row)}).catch(function(){}); }catch(e){}
+}
 
 /* ---------- armazenamento local ---------- */
 function load(){ try{ var s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
@@ -589,13 +602,14 @@ function parseXLSX(buf){
 
 /* ---------- identificação das colunas ---------- */
 var FIELDS = [
-  {k:'nome', label:'Nome do cliente', req:true, kw:['nome','cliente','name','customer','contato']},
+  {k:'nome', label:'Nome do cliente', req:true, kw:['nome','cliente','name','customer']},
   {k:'tel', label:'Telefone / WhatsApp', req:false, kw:['whats','telefone','celular','fone','phone','tel','contato']},
   {k:'data', label:'Data do pedido ou do último pedido', req:true, kw:['ultimo pedido','último pedido','ultima compra','última compra','data','date','pedido em','criado']},
   {k:'valor', label:'Valor do pedido ou ticket médio', req:false, kw:['ticket','valor','total','preco','preço','amount','gasto']},
   {k:'qtd', label:'Quantidade de pedidos', req:false, kw:['quantidade','qtd','qtde','num pedidos','nº pedidos','n pedidos','pedidos','compras','frequencia','frequência']}
 ];
 function norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[_\-]/g,' ').trim(); }
+var NOT_ORDER_DATE = /nasc|aniver|cadastr|criacao da conta|birth|entrega prevista/;
 function guess(headers, rows){
   var used = {}, map = {};
   FIELDS.forEach(function(F){
@@ -603,10 +617,11 @@ function guess(headers, rows){
     headers.forEach(function(h, i){
       if(used[i]) return;
       var H = norm(h);
+      if(F.k === 'data' && NOT_ORDER_DATE.test(H)) return;
       F.kw.forEach(function(kw, j){ var K = norm(kw); if(H === K && 100 - j > score){ score = 100 - j; best = i; } else if(H.indexOf(K) > -1 && 60 - j > score){ score = 60 - j; best = i; } });
     });
     if(F.k === 'data' && best < 0){
-      headers.forEach(function(h, i){ if(best >= 0 || used[i]) return; var ok = rows.slice(0,15).filter(function(r){ return parseDate(r[i]) != null; }).length; if(ok >= Math.min(5, rows.length) && ok > 0) best = i; });
+      headers.forEach(function(h, i){ if(best >= 0 || used[i] || NOT_ORDER_DATE.test(norm(h))) return; var ok = rows.slice(0,15).filter(function(r){ return parseDate(r[i]) != null; }).length; if(ok >= Math.min(5, rows.length) && ok > 0) best = i; });
     }
     if(best >= 0){ map[F.k] = best; used[best] = true; }
   });
@@ -661,7 +676,7 @@ function sampleRows(){
 /* ================= ESTADO ================= */
 var S = {
   base: load(),
-  view: null, pending: null,
+  view: null, pending: null, mode: 'base',
   filter:'inativos', sort:'dias', q:'', limit:50, selected:{}, camp:null, confirmDel:false
 };
 
@@ -680,6 +695,7 @@ function render(){
   return renderImport();
 }
 
+function renderImportScreen(errMsg){ return renderImport(errMsg); }
 function renderImport(errMsg){
   var root = $('root'), hasOld = S.base && S.base.clients && S.base.clients.length;
   root.innerHTML =
@@ -694,7 +710,7 @@ function renderImport(errMsg){
       '<span class="btn sm">Escolher arquivo</span>'+
     '</label>'+
     '<div class="imp-actions"><a class="btn ghost sm" href="'+esc(CONFIG.modeloUrl)+'" download id="dlModelo">Baixar planilha modelo</a><button type="button" class="btn ghost sm" id="useSample">Testar com dados de exemplo</button>'+(hasOld ? '<button type="button" class="btn ghost sm" id="cancelImp">Voltar ao painel</button>' : '')+'</div>'+
-    '<div class="lock"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>A planilha é lida aqui no seu navegador e fica salva só neste aparelho. Os dados dos seus clientes não são enviados para a Click.</span></div>'+
+    '<div class="lock"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>A planilha é lida aqui no seu navegador. Os nomes e telefones dos seus clientes ficam salvos só neste aparelho. A Click recebe apenas números gerais, como quantos clientes você tem e quantos pararam de pedir.</span></div>'+
     '<details class="help" open><summary>O que a planilha precisa ter?</summary><div class="help-body">'+
       '<p>Uma linha por cliente <b>ou</b> uma linha por pedido. Se vier uma linha por pedido, a Máquina junta os pedidos de cada cliente sozinha.</p>'+
       '<div class="cols"><div class="col req"><b>Nome</b>do cliente</div><div class="col req"><b>Data</b>do pedido ou do último pedido</div><div class="col"><b>Telefone</b>para abrir o WhatsApp</div><div class="col"><b>Valor</b>do pedido ou ticket médio</div><div class="col"><b>Qtd. de pedidos</b>se a planilha for de clientes</div></div>'+
@@ -702,7 +718,10 @@ function renderImport(errMsg){
     '</div></details>'+
     '<details class="help"><summary>De onde eu tiro essa planilha?</summary><div class="help-body">'+
       '<ul>'+
-        '<li><b>Sistema de delivery ou cardápio digital:</b> procure em <b>Clientes</b> ou <b>Relatórios → Pedidos</b> a opção <b>Exportar</b> (Excel ou CSV).</li>'+
+        '<li><b>Cardápio Web:</b> exporte o relatório de <b>Clientes</b>. Ele já traz telefone, data do último pedido, quantidade de pedidos e ticket médio.</li>'+
+        '<li><b>Anota AI:</b> em <b>Relatórios</b>, exporte o relatório de <b>Pedidos</b> em Excel e importe aqui. Depois exporte o relatório de <b>Clientes</b> e use o botão <b>Completar telefones</b> no painel.</li>'+
+        '<li><b>Saipos:</b> em <b>Relatórios → Vendas por período</b>, filtre os últimos meses e clique em <b>Exportar</b>.</li>'+
+        '<li><b>Outro sistema de delivery ou cardápio digital:</b> procure em <b>Clientes</b> ou <b>Relatórios → Pedidos</b> a opção <b>Exportar</b> (Excel ou CSV).</li>'+
         '<li><b>Sistema de caixa (PDV):</b> o relatório de vendas por cliente costuma ter exportação para Excel.</li>'+
         '<li><b>Planilha ou caderno próprio:</b> baixe a planilha modelo, preencha e envie.</li>'+
         '<li><b>Google Planilhas:</b> Arquivo → Fazer download → Microsoft Excel (.xlsx).</li>'+
@@ -722,6 +741,7 @@ function renderImport(errMsg){
 $('fileIn').addEventListener('change', function(){ var f = this.files[0]; this.value = ''; if(f) readFile(f); });
 
 function readFile(file){
+  var renderImport = function(m){ if(S.mode === 'phones' && S.base){ S.mode = 'base'; S.view = null; render(); toast(String(m||'').replace(/<[^>]+>/g,'')); } else renderImportScreen(m); };
   var name = file.name || 'planilha', ext = name.split('.').pop().toLowerCase();
   if(file.size > 25 * 1024 * 1024){ renderImport('O arquivo passa de 25 MB. Exporte só os últimos 12 meses de pedidos e tente de novo.'); return; }
   if(ext === 'xls' || ext === 'ods' || ext === 'numbers'){ renderImport('Esse formato não é aceito. Abra a planilha e salve como <b>Excel (.xlsx)</b> ou <b>CSV</b>.'); return; }
@@ -750,7 +770,7 @@ function startMap(rows, fileName, sample){
   var body = rows.slice(hi + 1);
   var w = Math.max.apply(null, rows.slice(hi, hi + 50).map(function(r){ return r.length; }));
   while(headers.length < w) headers.push('Coluna ' + (headers.length + 1));
-  S.pending = {headers:headers, rows:body, file:fileName, sample:sample, map:guess(headers, body), restaurante: rest || (S.base && S.base.restaurante) || ''};
+  S.pending = {headers:headers, rows:body, file:fileName, sample:sample, map:guess(headers, body), restaurante: rest || (S.base && S.base.restaurante) || '', mode:S.mode};
   S.view = 'map'; render(); window.scrollTo(0,0);
 }
 
@@ -761,24 +781,38 @@ function renderMap(errMsg){
       '<select id="map_'+F.k+'" data-k="'+F.k+'"><option value="">'+(F.req ? 'Escolha a coluna' : 'Não tenho essa informação')+'</option>'+
       P.headers.map(function(h, i){ return '<option value="'+i+'"'+(P.map[F.k] === i ? ' selected' : '')+'>'+esc(h)+'</option>'; }).join('')+'</select></div>';
   }
-  var prev = P.rows.slice(0, 5);
+  var prev = P.rows.slice(0, 5), PH = P.mode === 'phones';
+  var fields = PH ? FIELDS.filter(function(F){ return F.k === 'nome' || F.k === 'tel'; }) : FIELDS;
   root.innerHTML =
   '<div class="imp">'+
-    '<div class="imp-head"><span class="eyebrow">Passo 2 de 2</span><h1>Confira as colunas da sua planilha.</h1>'+
+    '<div class="imp-head"><span class="eyebrow">'+(PH ? 'Completar telefones' : 'Passo 2 de 2')+'</span><h1>'+(PH ? 'Qual coluna tem o nome e qual tem o telefone?' : 'Confira as colunas da sua planilha.')+'</h1>'+
     '<p class="lead">Já tentamos identificar sozinhos. Ajuste se algo estiver errado e toque em analisar.</p>'+
     '<div><span class="pill-info">'+esc(P.file)+' · '+nf.format(P.rows.length)+' linhas</span></div></div>'+
     (errMsg ? '<div class="msg-err">'+errMsg+'</div>' : '')+
     (P.sample ? '<div class="msg-warn">Estes são dados de exemplo, com nomes e telefones fictícios. Use para conhecer a ferramenta e depois importe a sua planilha.</div>' : '')+
-    '<div class="card" style="gap:14px"><div class="f"><label for="mapRest">Nome do restaurante</label><input id="mapRest" autocomplete="organization" value="'+esc(P.restaurante)+'" placeholder="Ex.: Burger da Vila"></div>'+
-    '<div class="map-grid">'+FIELDS.map(sel).join('')+'</div></div>'+
+    '<div class="card" style="gap:14px">'+(PH ? '' : '<div class="f"><label for="mapRest">Nome do restaurante</label><input id="mapRest" autocomplete="organization" value="'+esc(P.restaurante)+'" placeholder="Ex.: Burger da Vila"></div>')+
+    '<div class="map-grid">'+fields.map(sel).join('')+(PH || P.sample ? '' : '<div class="f"><label for="mapSis">De qual sistema veio a planilha? <span style="font-weight:500;color:var(--ink2)">(opcional)</span></label><select id="mapSis"><option value="">Escolha</option>'+['Cardápio Web','Anota AI','Saipos','Goomer','Consumer','Outro sistema','Planilha própria'].map(function(o){ return '<option'+(P.sistema===o?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>')+'</div></div>'+
     '<div><p style="font-weight:700;font-size:14px;margin-bottom:8px">Primeiras linhas da planilha</p><div class="pv-wrap"><table><thead><tr>'+P.headers.map(function(h){ return '<th>'+esc(h)+'</th>'; }).join('')+'</tr></thead><tbody>'+
       prev.map(function(r){ return '<tr>'+P.headers.map(function(_, i){ var v = r[i]; if(v instanceof Date) v = fmtDate(v.getTime()); return '<td>'+esc(v)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div></div>'+
-    '<div class="step-nav"><button type="button" class="back" id="mapBack">Voltar</button><button type="button" class="btn" id="mapGo">Analisar meus clientes</button></div>'+
+    '<div class="step-nav"><button type="button" class="back" id="mapBack">Voltar</button><button type="button" class="btn" id="mapGo">'+(PH ? 'Completar telefones' : 'Analisar meus clientes')+'</button></div>'+
   '</div>';
   root.querySelectorAll('select[data-k]').forEach(function(s){ s.addEventListener('change', function(){ var v = s.value; if(v === '') delete P.map[s.getAttribute('data-k')]; else P.map[s.getAttribute('data-k')] = +v; }); });
-  $('mapRest').addEventListener('input', function(){ P.restaurante = this.value; });
-  $('mapBack').addEventListener('click', function(){ S.view = null; S.pending = null; renderImport(); });
-  $('mapGo').addEventListener('click', runImport);
+  if($('mapRest')) $('mapRest').addEventListener('input', function(){ P.restaurante = this.value; });
+  if($('mapSis')) $('mapSis').addEventListener('change', function(){ P.sistema = this.value; });
+  $('mapBack').addEventListener('click', function(){ S.view = null; S.pending = null; if(PH){ S.mode = 'base'; render(); } else renderImport(); });
+  $('mapGo').addEventListener('click', PH ? runPhones : runImport);
+}
+
+function runPhones(){
+  var P = S.pending;
+  if(P.map.nome == null || P.map.tel == null) return renderMap('Escolha a coluna do <b>nome</b> e a do <b>telefone</b>.');
+  var byName = {};
+  P.rows.forEach(function(r){ var k = keyName(r[P.map.nome]), t = normPhone(r[P.map.tel]); if(k && waOk(t) && !byName[k]) byName[k] = t; });
+  var n = 0;
+  S.base.clients.forEach(function(c){ if(!waOk(c.tel)){ var t = byName[keyName(c.nome)]; if(t){ c.tel = t; n++; } } });
+  save(); track('phones_merged', {qtd:n});
+  S.view = null; S.pending = null; S.mode = 'base'; render(); window.scrollTo(0,0);
+  toast(n ? pl(n,'telefone completado','telefones completados') + '.' : 'Nenhum nome da planilha bateu com os clientes sem telefone.');
 }
 
 function runImport(){
@@ -787,11 +821,12 @@ function runImport(){
   if(P.map.data == null) return renderMap('Escolha a coluna com a <b>data</b> do pedido. Sem ela não dá para saber quem sumiu.');
   var res = aggregate(P.rows, P.map);
   if(!res.clients.length) return renderMap('Nenhuma linha teve uma data válida na coluna escolhida. Confira se escolheu a coluna certa. As datas precisam estar como 25/09/2026 ou 2026-09-25.');
-  S.base = {restaurante: (P.restaurante || '').trim() || 'Meu restaurante', arquivo:P.file, importadoEm:Date.now(), sample:!!P.sample, clients:res.clients, ticketPadrao:45, porPedido:res.rowsPerOrder, ignoradas:res.skipped + res.noName};
+  S.base = {restaurante: (P.restaurante || '').trim() || 'Meu restaurante', sistema: P.sistema || null, arquivo:P.file, importadoEm:Date.now(), sample:!!P.sample, clients:res.clients, ticketPadrao:45, porPedido:res.rowsPerOrder, ignoradas:res.skipped + res.noName};
   var old = load();
   if(old && old.clients && !P.sample){ var sent = {}; old.clients.forEach(function(c){ if(c.contatado) sent[(c.tel || '') + '|' + keyName(c.nome)] = c.contatado; }); S.base.clients.forEach(function(c){ var k = (c.tel || '') + '|' + keyName(c.nome); if(sent[k]) c.contatado = sent[k]; }); }
   save();
   track('import_done', {clientes:res.clients.length, por_pedido:res.rowsPerOrder, amostra:!!P.sample});
+  reportUsage('importou');
   S.view = null; S.pending = null; S.selected = {}; S.filter = 'inativos'; S.limit = 50; S.q = '';
   render(); window.scrollTo(0,0);
   toast(nf.format(res.clients.length) + ' clientes importados.');
@@ -863,7 +898,7 @@ function renderDash(){
       bar('Ativos (até 14 dias)','var(--accent)',st.ativo)+bar('15 a 29 dias','#E9B949',st.d15)+bar('30 a 59 dias','#E0823C',st.d30)+bar('60+ dias','#D1493A',st.d60)+
     '</div>'+
       ((st.temPedidos && st.umPedido) ? '<p class="note">'+pl(st.umPedido,'cliente inativo pediu','clientes inativos pediram')+' <b>uma única vez</b> e não '+(st.umPedido===1?'voltou':'voltaram')+'. Bons candidatos para uma oferta de segunda compra.</p>' : '')+
-      (st.semTel ? '<p class="note">'+pl(st.semTel,'cliente está','clientes estão')+' sem telefone válido e não '+(st.semTel===1?'pode':'podem')+' receber mensagem pelo WhatsApp.</p>' : '')+
+      (st.semTel ? '<div class="msg-warn" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between"><span>'+pl(st.semTel,'cliente está','clientes estão')+' sem telefone válido. Se o telefone estiver em outro relatório (como o de Clientes do Anota AI), junte aqui.</span><button type="button" class="btn sm dark" id="addTel">Completar telefones</button></div>' : '')+
     '</div>'+
     '<div class="panel">'+
       '<div class="toolbar"><div class="filters" role="group" aria-label="Filtrar clientes">'+filters.map(function(o){ return '<button type="button" class="chip" data-f="'+o[0]+'" aria-pressed="'+(S.filter === o[0])+'">'+o[1]+'</button>'; }).join('')+'</div></div>'+
@@ -885,7 +920,8 @@ function renderDash(){
   $('upSpec').href = wa('Olá! Uso a Máquina de Recuperação no '+B.restaurante+' e quero falar com um especialista da Click.');
   $('upFull').addEventListener('click', function(){ track('click_full_interest', {origem:'app'}); });
   $('upSpec').addEventListener('click', function(){ track('click_whatsapp', {origem:'app'}); });
-  $('reImp').addEventListener('click', function(){ S.view = null; renderImport(); window.scrollTo(0,0); });
+  $('reImp').addEventListener('click', function(){ S.view = null; S.mode = 'base'; renderImport(); window.scrollTo(0,0); });
+  if($('addTel')) $('addTel').addEventListener('click', function(){ S.mode = 'phones'; $('fileIn').click(); });
   $('delBase').addEventListener('click', function(){ S.confirmDel = true; renderDash(); });
   if($('delYes')) $('delYes').addEventListener('click', function(){ try{ localStorage.removeItem(KEY); }catch(e){} S.base = null; S.confirmDel = false; render(); toast('Dados apagados deste aparelho.'); });
   if($('delNo')) $('delNo').addEventListener('click', function(){ S.confirmDel = false; renderDash(); });
@@ -985,6 +1021,7 @@ function openCampaign(list){
   $('mSend').addEventListener('click', function(){
     if(!$('mMsg').value.trim()){ toast('Escreva a mensagem.'); return; }
     track('campaign_prepared', {qtd:withTel.length});
+    reportUsage('campanha', {mensagens:withTel.length});
     list.forEach(function(c){ delete S.selected[c.id]; });
     $('mMain').innerHTML =
       '<div class="done-box"><div class="ok"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></div>'+

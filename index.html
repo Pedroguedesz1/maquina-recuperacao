@@ -506,7 +506,9 @@ tr.sel td{background:var(--accent-soft)}
 var CONFIG = {
   checkoutUrl: "",
   whatsappClick: "",
-  leadWebhook: ""
+  leadWebhook: "",
+  supabaseUrl: "https://msrilojbncclwksphjjt.supabase.co",
+  supabaseKey: "sb_publishable_H7J9hYHDwXIz33PPvTLerQ_2Kx57zh0"
 };
 
 (function(){
@@ -535,7 +537,25 @@ function waLink(text, phone){
   var p = String(phone||'').replace(/\D/g,'');
   return 'https://wa.me/' + (p ? p : '') + '?text=' + encodeURIComponent(text);
 }
+function sbInsert(table, row){
+  if(!CONFIG.supabaseUrl || !CONFIG.supabaseKey) return Promise.resolve(false);
+  try{
+    return fetch(CONFIG.supabaseUrl.replace(/\/$/,'') + '/rest/v1/' + table, {
+      method:'POST', keepalive:true,
+      headers:{'apikey':CONFIG.supabaseKey, 'Content-Type':'application/json', 'Prefer':'return=minimal'},
+      body:JSON.stringify(row)
+    }).then(function(r){ return r.ok; }).catch(function(){ return false; });
+  }catch(e){ return Promise.resolve(false); }
+}
 function saveLead(lead){
+  var toInt = function(v){ v = parseInt(v, 10); return isNaN(v) ? null : v; };
+  sbInsert('leads', {
+    tipo: lead.tipo || null, origem: lead.origem || null, nome: lead.nome || null, whatsapp: lead.whatsapp || null,
+    restaurante: lead.restaurante || null, cidade: lead.cidade || null, email: lead.email || null,
+    canal: lead.canal || null, tamanho_base: lead.tamanho_base || null, acompanha_inativos: lead.acompanha_inativos || null,
+    estimativa_inativos: toInt(lead.estimativa_inativos), estimativa_potencial: lead.estimativa_potencial != null ? Number(lead.estimativa_potencial) : null,
+    utm: Object.keys(utm).length ? utm : null
+  });
   lead.criado_em = new Date().toISOString();
   Object.assign(lead, utm);
   try{ var all = JSON.parse(localStorage.getItem('click_maquina_leads') || '[]'); all.push(lead); localStorage.setItem('click_maquina_leads', JSON.stringify(all)); }catch(e){}
@@ -716,7 +736,7 @@ var App = {
     if(bad){ bad.focus(); return; }
     d.nome = n.value.trim(); d.whatsapp = z.value; d.cidade = c.value.trim(); d.restaurante = r.value.trim(); d.email = m.value.trim();
     this.build();
-    saveLead({tipo:'maquina_recuperacao', nome:d.nome, whatsapp:d.whatsapp, restaurante:d.restaurante, cidade:d.cidade, email:d.email,
+    saveLead({tipo:'maquina_recuperacao', origem:'demonstracao', nome:d.nome, whatsapp:d.whatsapp, restaurante:d.restaurante, cidade:d.cidade, email:d.email,
       canal:d.canal, tamanho_base:d.tamanho, acompanha_inativos:d.acompanha,
       estimativa_inativos:this.stats.inativos, estimativa_potencial:this.stats.potencial});
     track('lead_captured', {canal:d.canal, tamanho:d.tamanho});
