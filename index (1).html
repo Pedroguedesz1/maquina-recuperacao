@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Máquina de Recuperação Click</title>
+<meta name="description" content="Descubra quantos clientes do seu restaurante sumiram e traga eles de volta pelo WhatsApp. Máquina de Recuperação de Clientes da Click por R$ 49,90/mês.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F2F2F4; --surface:#FFFFFF; --surface2:#F7F7F9; --bg2:#E9E9EE;
+  --ink:#10162B; --ink2:#5C6272; --ink3:#8A8F9C; --line:#E2E3E9;
+  --accent:#62DD74; --accent-strong:#4FCB62; --accent-ink:#0A1F10; --accent-text:#15833A; --accent-soft:#DDF6E1;
+  --inv:#111214; --inv2:#1C1E22; --inv3:#26292F; --inv-line:#2C2F35; --inv-ink:#F4F4F6; --inv-ink2:#A3A7B1;
+  --gray-btn:#6A6A6D;
+  --warn:#9A6200; --warn-soft:#FCEFCF; --orange:#B4520C; --orange-soft:#FDE6D3; --bad:#C23A2B; --bad-soft:#FBE0DC;
+  --shadow:0 1px 0 rgba(16,22,43,.04),0 24px 48px -30px rgba(16,22,43,.45);
+  --font:"Plus Jakarta Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0;line-height:1.07;letter-spacing:-.035em;font-weight:800;text-wrap:balance}
+p{margin:0}
+a{color:inherit}
+button{font-family:inherit}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.wrap{max-width:1140px;margin-inline:auto;padding-inline:20px}
+.eyebrow{font-size:15px;font-weight:700;color:var(--accent-text)}
+.lead{font-size:clamp(17px,1.6vw,19px);color:var(--ink2);max-width:56ch}
+.note{font-size:13px;color:var(--ink2);line-height:1.5;display:flex;gap:8px;align-items:flex-start}
+.note svg{flex:none;margin-top:2px}
+.hl{font-style:normal;background:linear-gradient(transparent 60%,var(--accent) 60%,var(--accent) 90%,transparent 90%);padding-inline:.05em}
+
+/* botões */
+.btn{appearance:none;border:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;text-align:center;text-decoration:none;
+  font:800 16.5px/1.2 var(--font);padding:18px 26px;border-radius:999px;background:var(--accent);color:var(--accent-ink);transition:background .15s,transform .15s,opacity .15s}
+.btn:hover{background:var(--accent-strong);transform:translateY(-1px)}
+.btn.gray{background:var(--gray-btn);color:#fff}
+.btn.gray:hover{background:#58585B}
+.btn.dark{background:var(--inv);color:var(--inv-ink)}
+.btn.dark:hover{background:var(--inv2)}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+.btn.ghost:hover{background:var(--surface)}
+.btn.sm{padding:12px 18px;font-size:14.5px}
+.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+.btn svg{width:18px;height:18px;flex:none}
+:focus-visible{outline:3px solid var(--accent-text);outline-offset:3px}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+
+/* nav */
+.navbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);z-index:30;padding-inline:16px;margin-top:12px}
+.nav-inner{max-width:1140px;margin-inline:auto;background:var(--inv);border-radius:999px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 10px 10px 18px;box-shadow:0 14px 30px -18px rgba(0,0,0,.6)}
+.logo{display:flex;align-items:center;gap:10px;color:var(--inv-ink);font:800 24px/1 var(--font);letter-spacing:-.04em;text-decoration:none}
+.logo-mark{width:34px;height:34px;border-radius:9px;background:#fff;display:grid;place-items:center}
+.logo-mark svg{width:20px;height:20px}
+.nav-inner .btn{padding:12px 18px;font-size:14.5px}
+
+/* views */
+.view[hidden]{display:none!important}
+
+/* ================= LP ================= */
+.hero{padding-block:clamp(40px,6vw,76px) clamp(48px,6vw,80px)}
+.hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(32px,5vw,60px);align-items:center}
+.hero-copy{display:grid;gap:22px}
+.pill{display:inline-flex;align-items:center;gap:10px;width:fit-content;padding:5px 16px 5px 5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:14.5px}
+.pill i{width:30px;height:30px;border-radius:50%;background:#fff;color:#10162B;display:grid;place-items:center}
+.pill i svg{width:16px;height:16px}
+.hero h1{font-size:clamp(38px,5.4vw,64px)}
+.micro{font-size:14px;color:var(--ink2);display:flex;flex-wrap:wrap;gap:6px 18px}
+.micro span{display:inline-flex;align-items:center;gap:7px}
+.micro span::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent)}
+
+.mock{background:var(--surface);border-radius:26px;padding:18px;box-shadow:var(--shadow),inset 0 0 0 1px var(--line);display:grid;gap:12px}
+.mock-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mock-top b{font-size:15px}
+.demo-tag{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);background:var(--bg);padding:5px 10px;border-radius:999px}
+.mock-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mk{background:var(--bg);border-radius:16px;padding:14px;display:grid;gap:2px}
+.mk small{font-size:12.5px;color:var(--ink2);font-weight:600}
+.mk b{font:600 clamp(22px,2.6vw,28px)/1.2 var(--mono);letter-spacing:-.02em}
+.mk.dark{background:var(--inv);color:var(--inv-ink)}
+.mk.dark small{color:var(--inv-ink2)}
+.mk.dark b{color:var(--accent)}
+.mk.green{background:var(--accent);color:var(--accent-ink)}
+.mk.green small{color:var(--accent-ink)}
+.segbar{display:flex;height:12px;border-radius:99px;overflow:hidden;gap:2px}
+.segbar i{display:block;height:100%}
+.seg-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink2)}
+.seg-legend span{display:inline-flex;align-items:center;gap:6px}
+.seg-legend i{width:9px;height:9px;border-radius:3px;display:block}
+.mini-rows{display:grid;gap:6px}
+.mini-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--surface2);font-size:14px}
+.mini-row b{font-weight:700}
+.mini-row .d{font:500 12.5px/1 var(--mono);color:var(--ink2)}
+
+/* FOMO */
+.fomo{background:var(--inv);color:var(--inv-ink);padding-block:clamp(56px,8vw,96px)}
+.fomo .eyebrow{color:var(--accent)}
+.fomo-head{display:grid;gap:14px;max-width:760px;margin-bottom:clamp(28px,4vw,44px)}
+.fomo h2{font-size:clamp(32px,4.6vw,54px)}
+.fomo .lead{color:var(--inv-ink2)}
+.already{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:clamp(28px,4vw,40px)}
+.al{background:var(--inv2);border-radius:18px;padding:18px;display:grid;gap:8px;box-shadow:inset 0 0 0 1px var(--inv-line)}
+.al .ic{width:38px;height:38px;border-radius:11px;background:var(--accent);color:#08170C;display:grid;place-items:center}
+.al .ic svg{width:19px;height:19px}
+.al h3{font-size:18px;letter-spacing:-.02em}
+.al p{font-size:14.5px;color:var(--inv-ink2)}
+.flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;counter-reset:f}
+.flow li{position:relative;background:var(--inv2);border-radius:16px;padding:16px 14px;display:grid;gap:6px;align-content:start;box-shadow:inset 0 0 0 1px var(--inv-line);counter-increment:f}
+.flow li::before{content:counter(f);font:600 12px/1 var(--mono);color:var(--inv-ink2)}
+.flow li b{font-size:15.5px;line-height:1.3}
+.flow li.bad{background:#3A1E1A;box-shadow:inset 0 0 0 1px #5A2B24}
+.flow li.bad b{color:#F2806F}
+.flow-end{margin-top:22px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;padding:20px 22px;border-radius:18px;background:var(--accent);color:#08170C}
+.flow-end p{font-weight:700;font-size:clamp(17px,1.8vw,20px);max-width:48ch}
+.flow-end .btn{background:var(--inv);color:var(--inv-ink)}
+
+/* calculadora + oferta */
+.offer{padding-block:clamp(56px,8vw,96px)}
+.offer-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;align-items:start}
+.sec-head{display:grid;gap:12px;margin-bottom:clamp(24px,3.5vw,36px);max-width:720px}
+.sec-head h2{font-size:clamp(30px,4.2vw,48px)}
+.card{background:var(--surface);border-radius:26px;padding:clamp(18px,2.6vw,28px);box-shadow:var(--shadow),inset 0 0 0 1px var(--line);display:grid;gap:18px}
+.card h3{font-size:22px}
+.f{display:grid;gap:6px;min-width:0}
+.f label,.f .lbl{font-size:14px;font-weight:700}
+.f .hint{font-size:12.5px;color:var(--ink2)}
+.f input,.f select,.f textarea{font:500 16px/1.3 var(--font);color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;width:100%;min-width:0}
+.f textarea{resize:vertical;min-height:120px;line-height:1.5}
+.f input.numin{font-family:var(--mono);font-size:15.5px}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--accent-text);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.f .err{font-size:12.5px;color:var(--bad)}
+.f.invalid input,.f.invalid select{border-color:var(--bad)}
+.money{position:relative}
+.money::before{content:"R$";position:absolute;left:14px;top:50%;transform:translateY(-50%);font:600 13px/1 var(--mono);color:var(--ink2);pointer-events:none}
+.money input{padding-left:40px}
+.calc-in{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end}
+.calc-out{background:var(--inv);color:var(--inv-ink);border-radius:20px;padding:18px;display:grid;gap:12px}
+.co-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.co{background:var(--inv2);border-radius:14px;padding:14px;display:grid;gap:2px}
+.co small{font-size:12.5px;color:var(--inv-ink2);font-weight:600}
+.co b{font:600 clamp(22px,2.6vw,28px)/1.2 var(--mono);letter-spacing:-.02em}
+.co.g{background:var(--accent);color:#08170C}
+.co.g small{color:#08170C}
+.calc-msg{font-size:15px;line-height:1.55}
+.calc-msg b{color:var(--accent)}
+.pcts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--inv-ink2)}
+.chip{appearance:none;border:0;cursor:pointer;font:700 13.5px/1 var(--font);padding:10px 14px;border-radius:999px;background:var(--bg);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+.chip[aria-pressed="true"]{background:var(--inv);color:var(--inv-ink);box-shadow:none}
+.calc-out .chip{background:var(--inv2);color:var(--inv-ink2);box-shadow:inset 0 0 0 1.5px var(--inv-line)}
+.calc-out .chip[aria-pressed="true"]{background:var(--accent);color:#08170C;box-shadow:none}
+.calc-disc{font-size:12px;color:var(--inv-ink2);line-height:1.5}
+
+.plan{background:var(--inv);color:var(--inv-ink);border-radius:26px;padding:clamp(20px,2.8vw,30px);display:grid;gap:16px;position:sticky;top:96px}
+.plan .eyebrow{color:var(--accent)}
+.plan h3{font-size:26px}
+.price{display:flex;align-items:baseline;gap:6px}
+.price b{font:800 48px/1 var(--font);letter-spacing:-.04em;color:var(--accent)}
+.price span{color:var(--inv-ink2);font-weight:600}
+.plan ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.plan li{display:flex;gap:10px;align-items:flex-start;font-size:15.5px}
+.plan li svg{flex:none;width:18px;height:18px;color:var(--accent);margin-top:4px}
+.plan .btn{width:100%}
+.plan .btn.outline{background:transparent;color:var(--inv-ink);box-shadow:inset 0 0 0 1.5px var(--inv-line)}
+.plan .btn.outline:hover{background:var(--inv2)}
+.plan .small{font-size:13px;color:var(--inv-ink2);text-align:center}
+.warnbox{font-size:13px;color:#F0BD4F;background:#3A2F15;padding:10px 12px;border-radius:12px}
+.card .warnbox,.app .warnbox{color:var(--warn);background:var(--warn-soft)}
+
+/* Click completa */
+.full{padding-block:0 clamp(56px,8vw,96px)}
+.full-box{background:var(--surface);border-radius:26px;box-shadow:var(--shadow),inset 0 0 0 1px var(--line);padding:clamp(22px,3.4vw,40px);display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,4vw,48px);align-items:start}
+.full-box h2{font-size:clamp(26px,3.4vw,38px)}
+.full-box .lead{margin-top:12px}
+.full-form{display:grid;gap:12px}
+.full-form .btn{width:100%}
+.ok-box{display:grid;gap:10px;padding:18px;border-radius:18px;background:var(--accent-soft)}
+.ok-box b{font-size:18px}
+
+footer{padding-block:28px 40px;font-size:13px;color:var(--ink2)}
+footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+/* ================= APP ================= */
+.app{padding-block:28px 64px}
+.app .wrap{max-width:1140px}
+.steps-wrap{max-width:560px;margin-inline:auto}
+.progress{height:6px;border-radius:99px;background:var(--bg2);overflow:hidden;margin-bottom:22px}
+.progress i{display:block;height:100%;background:var(--accent);border-radius:inherit;transition:width .35s ease}
+.step{background:var(--surface);border-radius:26px;padding:clamp(20px,4vw,34px);box-shadow:var(--shadow),inset 0 0 0 1px var(--line);display:grid;gap:20px;animation:rise .35s ease both}
+.step .kicker{font:600 12.5px/1 var(--mono);color:var(--accent-text)}
+.step h2{font-size:clamp(26px,4vw,34px)}
+.step p.sub{color:var(--ink2)}
+.opts{display:grid;gap:10px}
+.opts.two{grid-template-columns:1fr 1fr}
+.opt{appearance:none;border:0;cursor:pointer;text-align:left;display:flex;align-items:center;gap:12px;padding:16px 18px;border-radius:16px;background:var(--bg);box-shadow:inset 0 0 0 1.5px var(--line);font:700 16px/1.3 var(--font);color:var(--ink);transition:box-shadow .15s,background .15s}
+.opt:hover{box-shadow:inset 0 0 0 1.5px var(--ink3)}
+.opt::before{content:"";width:20px;height:20px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 2px var(--ink3);background:var(--surface)}
+.opt[aria-checked="true"]{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent-text)}
+.opt[aria-checked="true"]::before{box-shadow:inset 0 0 0 6px var(--accent-text)}
+.step-nav{display:flex;gap:10px;justify-content:space-between;align-items:center}
+.step-nav .btn{flex:1}
+.step-nav .back{flex:none;appearance:none;border:0;background:none;cursor:pointer;font:700 15px/1 var(--font);color:var(--ink2);padding:14px 8px}
+.step-nav .back:hover{color:var(--ink)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.privacy{font-size:12.5px;color:var(--ink2);line-height:1.5}
+@keyframes rise{from{opacity:.001;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.analyzing{text-align:center;justify-items:center;padding-block:clamp(36px,6vw,56px)}
+.spinner{width:64px;height:64px;border-radius:50%;border:6px solid var(--bg2);border-top-color:var(--accent);animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.an-list{list-style:none;padding:0;margin:0;display:grid;gap:10px;text-align:left;width:100%;max-width:360px}
+.an-list li{display:flex;gap:10px;align-items:center;font-weight:600;color:var(--ink3);transition:color .2s}
+.an-list li::before{content:"";width:20px;height:20px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 2px var(--line)}
+.an-list li.done{color:var(--ink)}
+.an-list li.done::before{background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230A1F10' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center/12px no-repeat;box-shadow:none}
+
+/* dashboard */
+.dash{display:grid;gap:16px;animation:rise .4s ease both}
+.dash-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+.dash-head h2{font-size:clamp(26px,3.6vw,38px)}
+.dash-head p{color:var(--ink2);font-size:15px;margin-top:6px}
+.sim-banner{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--ink2);background:var(--surface);border-radius:14px;padding:12px 14px;box-shadow:inset 0 0 0 1px var(--line)}
+.sim-banner svg{flex:none;margin-top:2px;color:var(--accent-text)}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.kpi{background:var(--surface);border-radius:18px;padding:14px 16px;display:grid;gap:4px;box-shadow:inset 0 0 0 1px var(--line);align-content:start}
+.kpi small{font-size:12.5px;color:var(--ink2);font-weight:700;display:flex;align-items:center;gap:6px}
+.kpi small i{width:8px;height:8px;border-radius:50%;display:block}
+.kpi b{font:600 clamp(20px,2.4vw,28px)/1.15 var(--mono);letter-spacing:-.03em;white-space:nowrap}
+.kpi em{font-style:normal;font-size:12px;color:var(--ink2)}
+.kpi.cash{background:var(--inv);box-shadow:none}
+.kpi.cash small,.kpi.cash em{color:var(--inv-ink2)}
+.kpi.cash b{color:var(--accent)}
+.panel{background:var(--surface);border-radius:22px;box-shadow:inset 0 0 0 1px var(--line);padding:clamp(14px,2vw,20px);display:grid;gap:14px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.tb-right{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sort{font:600 14px/1 var(--font);color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:999px;padding:10px 14px}
+.sel-bar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 84px);z-index:5;box-shadow:0 8px 16px -12px rgba(16,22,43,.35);display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:14px;background:var(--bg)}
+.sel-bar .count{font-weight:700;font-size:14.5px}
+.sel-bar .count b{font-family:var(--mono)}
+.sel-actions{display:flex;flex-wrap:wrap;gap:8px}
+.linkbtn{appearance:none;border:0;background:none;cursor:pointer;font:700 14px/1 var(--font);color:var(--ink);padding:10px 8px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line)}
+.linkbtn:hover{text-decoration-color:var(--ink)}
+.tbl-wrap{overflow-x:auto;border-radius:14px;box-shadow:inset 0 0 0 1px var(--line)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;min-width:640px}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2);text-align:left;font-weight:700;padding:12px 14px;background:var(--surface2);white-space:nowrap}
+td{padding:11px 14px;border-top:1px solid var(--line);vertical-align:middle}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.ck,th.ck{width:44px;padding-right:0}
+td .who{font-weight:700;display:block}
+td .last{font-size:12.5px;color:var(--ink2)}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent-text);cursor:pointer}
+tr.sel td{background:var(--accent-soft)}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.tag::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.tag.at{background:var(--warn-soft);color:var(--warn)}
+.tag.in{background:var(--orange-soft);color:var(--orange)}
+.tag.lo{background:var(--bad-soft);color:var(--bad)}
+.rec{appearance:none;border:0;cursor:pointer;font:700 13px/1 var(--font);padding:9px 12px;border-radius:999px;background:var(--inv);color:var(--inv-ink);white-space:nowrap}
+.rec:hover{background:var(--inv3)}
+.tbl-foot{font-size:13px;color:var(--ink2);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cards-m{display:none;gap:8px}
+.cm{display:grid;grid-template-columns:auto 1fr auto;gap:10px 12px;align-items:center;padding:12px;border-radius:14px;background:var(--surface2);box-shadow:inset 0 0 0 1px var(--line)}
+.cm.sel{background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent-text)}
+.cm .who{font-weight:700;display:block}
+.cm .meta{font-size:12.5px;color:var(--ink2);font-family:var(--mono)}
+.cm .rt{display:grid;gap:6px;justify-items:end}
+
+.upsell{background:var(--inv);color:var(--inv-ink);border-radius:26px;padding:clamp(22px,3.4vw,38px);display:grid;grid-template-columns:1.2fr .8fr;gap:clamp(18px,4vw,40px);align-items:center}
+.upsell .eyebrow{color:var(--accent)}
+.upsell h3{font-size:clamp(24px,3.2vw,34px);margin-top:10px}
+.upsell p{color:var(--inv-ink2);margin-top:12px;max-width:56ch}
+.upsell .btns{display:grid;gap:10px}
+.upsell .btn.outline{background:transparent;color:var(--inv-ink);box-shadow:inset 0 0 0 1.5px var(--inv-line)}
+.upsell .btn.outline:hover{background:var(--inv2)}
+.sub-buy{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;background:var(--surface);border-radius:20px;padding:16px 18px;box-shadow:inset 0 0 0 1px var(--line)}
+.sub-buy p{font-weight:700}
+.sub-buy p span{color:var(--ink2);font-weight:500;display:block;font-size:14px}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;z-index:60;background:rgba(10,12,16,.55);display:flex;align-items:flex-end;justify-content:center;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.modal{background:var(--surface);border-radius:26px;width:100%;max-width:880px;max-height:calc(100vh - 32px);overflow:auto;display:grid;grid-template-columns:1.1fr .9fr;animation:rise .3s ease both}
+.m-main{padding:clamp(18px,3vw,28px);display:grid;gap:14px;align-content:start}
+.m-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.m-head h3{font-size:clamp(22px,3vw,28px)}
+.m-head p{color:var(--ink2);font-size:14.5px;margin-top:6px}
+.x{appearance:none;border:0;cursor:pointer;width:40px;height:40px;border-radius:50%;background:var(--bg);color:var(--ink);display:grid;place-items:center;flex:none}
+.x:hover{background:var(--bg2)}
+.vars{font-size:12.5px;color:var(--ink2)}
+.vars code{font-family:var(--mono);background:var(--bg);padding:2px 6px;border-radius:6px;color:var(--ink)}
+.m-side{background:#E7DED4;padding:clamp(18px,3vw,28px);display:grid;gap:12px;align-content:start;border-radius:0 26px 26px 0}
+.m-side small{font-size:12px;font-weight:700;color:#54493F}
+.wa-chat{display:grid;gap:8px}
+.wa-head{display:flex;align-items:center;gap:10px;background:#1F6E5B;color:#fff;border-radius:14px;padding:10px 12px}
+.wa-head i{width:32px;height:32px;border-radius:50%;background:#fff;display:grid;place-items:center}
+.wa-head i svg{width:18px;height:18px}
+.wa-head b{font-size:14px;display:block}
+.wa-head span{font-size:11.5px;opacity:.85}
+.bubble{background:#D9FDD3;color:#111B21;border-radius:12px 0 12px 12px;padding:10px 12px 20px;font-size:14.5px;line-height:1.45;white-space:pre-wrap;position:relative;justify-self:end;max-width:95%;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+.bubble .t{position:absolute;right:8px;bottom:4px;font-size:10.5px;color:#667781}
+.done-box{display:grid;gap:14px}
+.done-box .ok{width:52px;height:52px;border-radius:50%;background:var(--accent);color:#08170C;display:grid;place-items:center}
+.wa-list{display:grid;gap:6px;max-height:280px;overflow:auto}
+.wa-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--bg);font-size:14.5px}
+.wa-item a{font:700 13px/1 var(--font);text-decoration:none;background:#25D366;color:#0A2D14;padding:9px 12px;border-radius:999px;white-space:nowrap}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:80;background:var(--inv);color:var(--inv-ink);padding:12px 18px;border-radius:999px;font-weight:600;font-size:14.5px;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);max-width:calc(100% - 32px);text-align:center}
+
+/* responsivo */
+@media (max-width:1020px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+}
+@media (min-width:901px){ .modal-bg{align-items:center} }
+@media (max-width:900px){
+  .hero .wrap,.offer-grid,.full-box,.upsell{grid-template-columns:1fr}
+  .already{grid-template-columns:1fr}
+  .flow{grid-template-columns:1fr}
+  .flow li{grid-template-columns:auto 1fr;align-items:center;gap:12px}
+  .plan{position:static}
+  .modal{grid-template-columns:1fr}
+  .m-side{border-radius:0 0 26px 26px}
+}
+@media (max-width:720px){
+  .nav-inner .btn span.long{display:none}
+  .tbl-wrap{display:none}
+  .cards-m{display:grid}
+  .calc-in{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  body{font-size:16px}
+  .kpis{grid-template-columns:1fr 1fr}
+  .kpi.cash b{font-size:19px}
+  .frow,.opts.two{grid-template-columns:1fr}
+  .hero-copy .cta-row .btn{width:100%}
+  .mock-kpis{grid-template-columns:1fr 1fr}
+  .co-row{grid-template-columns:1fr}
+  .toolbar{align-items:stretch}
+  .tb-right,.sort{width:100%}
+  .sel-actions{width:100%}
+  .sel-actions .btn{flex:1}
+}
+</style>
+</head>
+<body>
+
+
+<div class="navbar">
+  <div class="nav-inner">
+    <a class="logo" href="#inicio" data-go="lp" aria-label="Click, início">
+      <span class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#111214" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></span>Click
+    </a>
+    <a class="btn" href="#maquina" data-go="app" data-ev="cta_nav">Testar<span class="long">&nbsp;a Máquina</span></a>
+  </div>
+</div>
+
+<!-- =============== PÁGINA 1: LP =============== -->
+<div class="view" id="viewLP">
+<main>
+  <section class="hero" id="inicio">
+    <div class="wrap">
+      <div class="hero-copy">
+        <span class="pill"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></i>Máquina de Recuperação de Clientes</span>
+        <h1>Quantos clientes do seu restaurante <em class="hl">simplesmente sumiram?</em></h1>
+        <p class="lead">Descubra quem não compra há 15, 30 ou 60 dias e transforme clientes esquecidos em novas vendas.</p>
+        <div class="cta-row">
+          <a class="btn" href="#maquina" data-go="app" data-ev="cta_hero">Descobrir clientes que posso recuperar
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="btn gray" href="#como-funciona" data-ev="cta_como_funciona">Como funciona</a>
+        </div>
+        <div class="micro"><span>Resultado em 2 minutos</span><span>Mensagem pronta para o WhatsApp</span><span>R$ 49,90/mês</span></div>
+      </div>
+
+      <div class="mock" aria-label="Demonstração do painel da Máquina">
+        <div class="mock-top"><b>Sua base de clientes</b><span class="demo-tag">Demonstração</span></div>
+        <div class="mock-kpis">
+          <div class="mk"><small>Clientes na base</small><b>1.842</b></div>
+          <div class="mk dark"><small>Clientes inativos</small><b>437</b></div>
+          <div class="mk green"><small>Potencial de recompra</small><b>R$ 38.640</b></div>
+          <div class="mk"><small>Há +30 dias sem comprar</small><b>227</b></div>
+        </div>
+        <div class="segbar" aria-hidden="true"><i style="width:76.3%;background:var(--accent)"></i><i style="width:11.4%;background:#E9B949"></i><i style="width:7.8%;background:#E0823C"></i><i style="width:4.5%;background:#D1493A"></i></div>
+        <div class="seg-legend"><span><i style="background:var(--accent)"></i>Ativos</span><span><i style="background:#E9B949"></i>15 dias</span><span><i style="background:#E0823C"></i>30 dias</span><span><i style="background:#D1493A"></i>60+ dias</span></div>
+        <div class="mini-rows">
+          <div class="mini-row"><b>Fernanda Lima</b><span class="d">63 dias</span><span class="tag lo">Perdido</span></div>
+          <div class="mini-row"><b>Mariana Costa</b><span class="d">41 dias</span><span class="tag in">Inativo</span></div>
+          <div class="mini-row"><b>Carlos Mendes</b><span class="d">28 dias</span><span class="tag at">Atenção</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="fomo" id="como-funciona">
+    <div class="wrap">
+      <div class="fomo-head">
+        <span class="eyebrow">Enquanto isso, na concorrência</span>
+        <h2>Seu cliente sumido está recebendo mensagem. <span style="color:var(--accent)">Só que não é a sua.</span></h2>
+        <p class="lead">Apps de delivery e grandes redes já usam tecnologia para chamar de volta quem parou de pedir. Quem ainda espera o cliente lembrar sozinho vende para cada vez menos gente.</p>
+      </div>
+      <div class="already">
+        <div class="al"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><h3>Eles sabem quem sumiu</h3><p>O sistema avisa quando alguém passa 15, 30 dias sem pedir.</p></div>
+        <div class="al"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12v8H4v-8M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/></svg></div><h3>Mandam cupom na hora certa</h3><p>A oferta chega antes do cliente se acostumar com outro lugar.</p></div>
+        <div class="al"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg></div><h3>Falam direto no WhatsApp</h3><p>Mensagem pessoal, com o nome do cliente, e não um post que ninguém vê.</p></div>
+      </div>
+      <ol class="flow" aria-label="O que acontece sem recuperação">
+        <li><b>Cliente compra de você</b></li>
+        <li><b>Cliente some</b></li>
+        <li><b>Você não percebe</b></li>
+        <li class="bad"><b>Concorrente chama ele primeiro</b></li>
+        <li class="bad"><b>Você perde a próxima venda</b></li>
+      </ol>
+      <div class="flow-end">
+        <p>Você já pagou para conquistar esse cliente. A Máquina de Recuperação mostra quem sumiu e te dá a mensagem pronta para trazer de volta.</p>
+        <a class="btn" href="#maquina" data-go="app" data-ev="cta_fomo">Ver quem sumiu da minha base</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="offer" id="simular">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">Faça a conta</span>
+        <h2>Quanto dinheiro está parado na sua base?</h2>
+      </div>
+      <div class="offer-grid">
+        <div class="card">
+          <div class="calc-in">
+            <div class="f"><label for="cBase">Clientes que compraram nos últimos meses</label><input id="cBase" class="numin" inputmode="numeric" value="2.000"></div>
+            <div class="f"><label for="cPed">Pedidos que você recebe por mês</label><input id="cPed" class="numin" inputmode="numeric" value="1.500"></div>
+            <div class="f"><label for="cTick">Ticket médio</label><div class="money"><input id="cTick" class="numin" inputmode="decimal" value="45"></div></div>
+          </div>
+          <button type="button" class="btn dark" id="cGo">Calcular oportunidade</button>
+          <div class="calc-out" id="cOut" aria-live="polite"></div>
+        </div>
+
+        <aside class="plan" id="assinar">
+          <span class="eyebrow">Máquina de Recuperação</span>
+          <h3>Teste a Máquina de Recuperação por apenas</h3>
+          <div class="price"><b>R$ 49,90</b><span>/mês</span></div>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>Importe sua planilha de clientes ou pedidos (Excel ou CSV)</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>Quem está há 15, 30 e 60+ dias sem comprar</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>Quanto dinheiro isso representa</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>Escolha quem você quer recuperar</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>Mensagem com cupom pronta para o WhatsApp</li>
+          </ul>
+          <a class="btn" href="#" data-buy="lp">Assinar por R$ 49,90/mês</a>
+          <a class="btn outline" href="#maquina" data-go="app" data-ev="cta_plano_testar">Ver com os meus números primeiro</a>
+          <div class="warnbox" data-nolink hidden>Link de pagamento ainda não configurado. Esta é uma prévia.</div>
+          <p class="small">Cancele quando quiser.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="full" id="click-completa">
+    <div class="wrap">
+      <div class="full-box">
+        <div>
+          <span class="eyebrow">Click completa</span>
+          <h2 style="margin-top:10px">Quer recuperar clientes de forma automática e ter uma estrutura completa para vender mais?</h2>
+          <p class="lead">A Click ajuda seu restaurante a criar seu próprio canal de vendas, aumentar recompra e depender menos de marketplaces.</p>
+        </div>
+        <div>
+          <button type="button" class="btn dark" id="fullOpen" style="width:100%">Conhecer a Click completa</button>
+          <form class="full-form" id="fullForm" novalidate hidden>
+            <div class="f"><label for="fuNome">Seu nome</label><input id="fuNome" autocomplete="name"><span class="err"></span></div>
+            <div class="frow">
+              <div class="f"><label for="fuZap">WhatsApp</label><input id="fuZap" type="tel" inputmode="tel" autocomplete="tel" placeholder="(61) 90000-0000"><span class="err"></span></div>
+              <div class="f"><label for="fuRest">Restaurante</label><input id="fuRest" autocomplete="organization"><span class="err"></span></div>
+            </div>
+            <button type="submit" class="btn">Quero conhecer a Click completa</button>
+            <p class="privacy">Um especialista da Click fala com você pelo WhatsApp.</p>
+          </form>
+          <div class="ok-box" id="fullOk" hidden>
+            <b>Recebemos seu interesse!</b>
+            <p style="font-size:15px">Se quiser adiantar, chame um especialista agora:</p>
+            <a class="btn" id="fullWa" href="#" target="_blank" rel="noopener">Falar com um especialista</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer><div class="wrap"><span>Click · tecnologia para restaurantes</span><span>Os números de demonstração são fictícios. Estimativas não são garantia de receita.</span></div></footer>
+</div>
+
+<!-- =============== PÁGINA 2: A MÁQUINA =============== -->
+<div class="view app" id="viewApp" hidden>
+  <div class="wrap" id="appRoot"></div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+/* ================= CONFIGURAÇÃO =================
+   checkoutUrl      link de pagamento da assinatura de R$ 49,90/mês (Asaas, Mercado Pago, Stripe...)
+   whatsappClick    número do comercial da Click, só dígitos com DDI (ex.: "5561999999999")
+   leadWebhook      endpoint que recebe os leads em JSON (CRM, n8n, Make, Zapier). Vazio = só salva no navegador
+*/
+var CONFIG = {
+  checkoutUrl: "",
+  whatsappClick: "",
+  leadWebhook: ""
+};
+
+(function(){
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+var nf = new Intl.NumberFormat('pt-BR');
+var brl0 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+function num(s){ s = String(s||'').replace(/[^\d,.]/g,''); if(s.indexOf(',')>-1){ s = s.replace(/\./g,'').replace(',','.'); } else if(/^\d{1,3}(\.\d{3})+$/.test(s)){ s = s.replace(/\./g,''); } var v = parseFloat(s); return isNaN(v) ? 0 : v; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function first(n){ return String(n||'').trim().split(/\s+/)[0] || ''; }
+
+/* ---------- métricas ---------- */
+var utm = {};
+try{ var qp = new URLSearchParams(location.search); ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid','gclid'].forEach(function(k){ if(qp.get(k)) utm[k] = qp.get(k); }); }catch(e){}
+function track(ev, data){
+  try{ window.dataLayer = window.dataLayer || []; window.dataLayer.push(Object.assign({event:ev}, utm, data||{})); }catch(e){}
+  try{ if(typeof window.fbq === 'function'){ var map = {lead_captured:'Lead', checkout_click:'InitiateCheckout', click_full_interest:'Contact'}; if(map[ev]) window.fbq('track', map[ev]); } }catch(e){}
+}
+track('page_view');
+
+function toast(msg){
+  var t = $('toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(function(){ t.hidden = true; }, 2600);
+}
+function waLink(text, phone){
+  var p = String(phone||'').replace(/\D/g,'');
+  return 'https://wa.me/' + (p ? p : '') + '?text=' + encodeURIComponent(text);
+}
+function saveLead(lead){
+  lead.criado_em = new Date().toISOString();
+  Object.assign(lead, utm);
+  try{ var all = JSON.parse(localStorage.getItem('click_maquina_leads') || '[]'); all.push(lead); localStorage.setItem('click_maquina_leads', JSON.stringify(all)); }catch(e){}
+  if(CONFIG.leadWebhook){ try{ fetch(CONFIG.leadWebhook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(lead)}).catch(function(){}); }catch(e){} }
+}
+function maskPhone(el){
+  el.addEventListener('input', function(){
+    var d = el.value.replace(/\D/g,'').slice(0,11), o = d;
+    if(d.length > 2) o = '(' + d.slice(0,2) + ') ' + d.slice(2);
+    if(d.length > 7) o = '(' + d.slice(0,2) + ') ' + d.slice(2, d.length-4) + '-' + d.slice(-4);
+    el.value = o;
+  });
+}
+function setErr(el, msg){ var f = el.closest('.f'); if(!f) return; f.classList.toggle('invalid', !!msg); var e = f.querySelector('.err'); if(e) e.textContent = msg || ''; }
+
+/* ---------- checkout ---------- */
+function checkoutHref(){
+  try{ var u = new URL(CONFIG.checkoutUrl); Object.keys(utm).forEach(function(k){ u.searchParams.set(k, utm[k]); }); return u.toString(); }catch(e){ return CONFIG.checkoutUrl; }
+}
+function wireBuy(root){
+  (root||document).querySelectorAll('[data-buy]').forEach(function(a){
+    if(a._wired) return; a._wired = true;
+    if(CONFIG.checkoutUrl){ a.href = checkoutHref(); a.target = '_blank'; a.rel = 'noopener'; }
+    a.addEventListener('click', function(e){
+      track('checkout_click', {origem: a.getAttribute('data-buy')});
+      if(!CONFIG.checkoutUrl){ e.preventDefault(); var w = a.parentNode.querySelector('[data-nolink]'); if(w) w.hidden = false; else toast('Link de pagamento ainda não configurado.'); }
+    });
+  });
+}
+wireBuy();
+
+/* ---------- navegação entre as 2 páginas ---------- */
+function route(){
+  var app = location.hash === '#maquina';
+  $('viewLP').hidden = app; $('viewApp').hidden = !app;
+  if(app){ if(!App.started) App.start(); window.scrollTo(0,0); }
+}
+window.addEventListener('hashchange', route);
+document.querySelectorAll('[data-ev]').forEach(function(el){ el.addEventListener('click', function(){ track('cta_click', {cta: el.getAttribute('data-ev')}); }); });
+document.addEventListener('click', function(e){
+  var a = e.target.closest('[data-go]'); if(!a) return;
+  var to = a.getAttribute('data-go');
+  if(to === 'lp' && location.hash === '#maquina'){ e.preventDefault(); location.hash = 'inicio'; }
+});
+
+/* ---------- calculadora ---------- */
+var calcPct = 0.05, calcTicket = 45;
+function calc(fromBtn){
+  var B = Math.round(num($('cBase').value)), P = Math.round(num($('cPed').value)), T = num($('cTick').value);
+  var out = $('cOut');
+  if(B <= 0 || T <= 0){ out.innerHTML = '<p class="calc-msg">Preencha quantos clientes compraram de você e o ticket médio.</p>'; return; }
+  calcTicket = T;
+  var back = Math.round(B * calcPct), val = back * T;
+  var gap = P > 0 && P < B ? B - P : 0;
+  var html = '<p class="calc-msg">'+ (gap
+      ? 'Mesmo que cada pedido do mês fosse de um cliente diferente, pelo menos <b>'+nf.format(gap)+' clientes</b> da sua base não compraram de você este mês.'
+      : 'Você pode ter centenas de clientes que já compraram de você e ainda não voltaram.') + '</p>';
+  html += '<div class="pcts"><span>Se voltar a comprar</span>'+[0.05,0.10,0.15].map(function(p){ return '<button type="button" class="chip" data-pct="'+p+'" aria-pressed="'+(p===calcPct)+'">'+Math.round(p*100)+'%</button>'; }).join('')+'<span>da base</span></div>';
+  html += '<div class="co-row"><div class="co"><small>Clientes de volta</small><b>'+nf.format(back)+'</b></div><div class="co g"><small>Em vendas potenciais</small><b>'+brl0.format(val)+'</b></div></div>';
+  html += '<p class="calc-msg">Com ticket médio de '+brl0.format(T)+', são aproximadamente <b>'+brl0.format(val)+'</b> se cada um fizer só mais um pedido.</p>';
+  html += '<a class="btn" href="#maquina" data-go="app" style="width:100%">Descobrir quem são esses clientes</a>';
+  html += '<p class="calc-disc">Estimativa feita com os números que você digitou. Não é garantia de receita.</p>';
+  out.innerHTML = html;
+  out.querySelectorAll('[data-pct]').forEach(function(b){ b.addEventListener('click', function(){ calcPct = +b.getAttribute('data-pct'); calc(false); }); });
+  if(fromBtn) track('calculator_used', {base:B, pedidos:P, ticket:T});
+}
+$('cGo').addEventListener('click', function(){ calc(true); });
+['cBase','cPed','cTick'].forEach(function(id){ $(id).addEventListener('keydown', function(e){ if(e.key === 'Enter') calc(true); }); });
+calc(false);
+
+/* ---------- Click completa (LP) ---------- */
+maskPhone($('fuZap'));
+$('fullOpen').addEventListener('click', function(){ track('click_full_open', {origem:'lp'}); $('fullOpen').hidden = true; $('fullForm').hidden = false; $('fuNome').focus(); });
+$('fullForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var n = $('fuNome'), z = $('fuZap'), r = $('fuRest'), bad = null;
+  setErr(n, n.value.trim().length < 2 ? 'Informe seu nome.' : ''); if(n.value.trim().length < 2) bad = bad || n;
+  var zok = z.value.replace(/\D/g,'').length >= 10; setErr(z, zok ? '' : 'WhatsApp com DDD.'); if(!zok) bad = bad || z;
+  setErr(r, r.value.trim().length < 2 ? 'Informe o restaurante.' : ''); if(r.value.trim().length < 2) bad = bad || r;
+  if(bad){ bad.focus(); return; }
+  saveLead({tipo:'interesse_click_completa', origem:'lp', nome:n.value.trim(), whatsapp:z.value, restaurante:r.value.trim()});
+  track('click_full_interest', {origem:'lp'});
+  $('fullForm').hidden = true; $('fullOk').hidden = false;
+  $('fullWa').href = waLink('Olá! Sou '+n.value.trim()+', do '+r.value.trim()+'. Quero conhecer a Click completa.', CONFIG.whatsappClick);
+});
+$('fullWa').addEventListener('click', function(){ track('click_whatsapp', {origem:'lp'}); });
+
+/* ================= A MÁQUINA ================= */
+var FIRST = ['Ana','Bruno','Camila','Diego','Eduarda','Felipe','Gabriela','Henrique','Isabela','João','Juliana','Lucas','Mariana','Matheus','Natália','Paulo','Rafaela','Rodrigo','Sabrina','Thiago','Vanessa','Vinícius','Larissa','Carlos','Fernanda','Gustavo','Letícia','André','Beatriz','Renato','Patrícia','Leandro'];
+var LAST = ['Silva','Costa','Mendes','Lima','Souza','Oliveira','Pereira','Almeida','Ferreira','Rodrigues','Gomes','Martins','Araújo','Barbosa','Ribeiro','Carvalho','Rocha','Dias','Moreira','Nunes'];
+var SIZES = {'Até 500':420, '500–1.000':780, '1.000–5.000':1842, '5.000+':6310};
+var SHARE = {at:0.114, in:0.0776, lo:0.0456};
+
+function rng(seed){ var h = 2166136261; for(var i=0;i<seed.length;i++){ h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); } return function(){ h += 0x6D2B79F5; var t = h; t = Math.imul(t ^ t>>>15, t|1); t ^= t + Math.imul(t ^ t>>>7, t|61); return ((t ^ t>>>14)>>>0)/4294967296; }; }
+
+var App = {
+  started:false, step:0,
+  data:{restaurante:'', canal:'', tamanho:'', acompanha:'', nome:'', whatsapp:'', cidade:'', email:''},
+  filter:'all', sort:'days', selected:{}, clients:[], stats:null,
+  root:null,
+
+  start:function(){ this.started = true; this.root = $('appRoot'); track('onboarding_start'); this.render(); },
+
+  render:function(){
+    var s = this.step;
+    if(s <= 4) return this.renderStep();
+    if(s === 5) return this.renderAnalyzing();
+    return this.renderDash();
+  },
+
+  shell:function(inner, pct){
+    return '<div class="steps-wrap"><div class="progress" aria-hidden="true"><i style="width:'+pct+'%"></i></div>'+inner+'</div>';
+  },
+
+  renderStep:function(){
+    var s = this.step, d = this.data, self = this, html;
+    function opts(key, list, two){
+      return '<div class="opts'+(two?' two':'')+'" role="radiogroup">'+list.map(function(o){ return '<button type="button" class="opt" role="radio" data-k="'+key+'" data-v="'+esc(o)+'" aria-checked="'+(d[key]===o)+'">'+esc(o)+'</button>'; }).join('')+'</div>';
+    }
+    var nav = function(label, can){ return '<div class="step-nav">'+(s>0?'<button type="button" class="back" id="stBack">Voltar</button>':'<a class="back" href="#inicio" data-go="lp">Voltar</a>')+'<button type="button" class="btn" id="stNext"'+(can?'':' disabled')+'>'+label+'</button></div>'; };
+
+    if(s === 0){
+      html = '<div class="step"><span class="kicker">1 de 4</span><h2>Vamos descobrir quantos clientes você pode recuperar.</h2>'+
+        '<div class="f"><label for="obRest">Nome do restaurante</label><input id="obRest" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(d.restaurante)+'"></div>'+
+        nav('Continuar', d.restaurante.trim().length >= 2)+'</div>';
+    } else if(s === 1){
+      html = '<div class="step"><span class="kicker">2 de 4</span><h2>Como você vende hoje?</h2>'+opts('canal',['WhatsApp','iFood','Sistema próprio','Outro'],true)+nav('Continuar', !!d.canal)+'</div>';
+    } else if(s === 2){
+      html = '<div class="step"><span class="kicker">3 de 4</span><h2>Quantos clientes você tem, mais ou menos?</h2><p class="sub">Conte quem já comprou pelo menos uma vez.</p>'+opts('tamanho',['Até 500','500–1.000','1.000–5.000','5.000+'],true)+nav('Continuar', !!d.tamanho)+'</div>';
+    } else if(s === 3){
+      html = '<div class="step"><span class="kicker">4 de 4</span><h2>Você acompanha quem deixou de comprar?</h2>'+opts('acompanha',['Nunca','Às vezes','Todos os meses','Já tenho um sistema'])+nav('Continuar', !!d.acompanha)+'</div>';
+    } else {
+      html = '<form class="step" id="leadF" novalidate><span class="kicker">Último passo</span><h2>Para onde enviamos sua análise?</h2><p class="sub">Leva 20 segundos.</p>'+
+        '<div class="f"><label for="ldNome">Seu nome</label><input id="ldNome" autocomplete="name" value="'+esc(d.nome)+'"><span class="err"></span></div>'+
+        '<div class="frow"><div class="f"><label for="ldZap">WhatsApp</label><input id="ldZap" type="tel" inputmode="tel" autocomplete="tel" placeholder="(61) 90000-0000" value="'+esc(d.whatsapp)+'"><span class="err"></span></div>'+
+        '<div class="f"><label for="ldCid">Cidade</label><input id="ldCid" autocomplete="address-level2" placeholder="Cidade / UF" value="'+esc(d.cidade)+'"><span class="err"></span></div></div>'+
+        '<div class="f"><label for="ldRest">Nome do restaurante</label><input id="ldRest" autocomplete="organization" value="'+esc(d.restaurante)+'"><span class="err"></span></div>'+
+        '<div class="f"><label for="ldMail">E-mail <span style="font-weight:500;color:var(--ink2)">(opcional)</span></label><input id="ldMail" type="email" autocomplete="email" value="'+esc(d.email)+'"><span class="err"></span></div>'+
+        '<div class="step-nav"><button type="button" class="back" id="stBack">Voltar</button><button type="submit" class="btn">Ver minha oportunidade</button></div>'+
+        '<p class="privacy">Seus dados são usados só para a Click falar com você sobre a análise, conforme a LGPD.</p></form>';
+    }
+    this.root.innerHTML = this.shell(html, [12,32,52,72,90][s]);
+
+    var next = $('stNext'), back = $('stBack');
+    if(back) back.addEventListener('click', function(){ self.step--; self.render(); });
+    this.root.querySelectorAll('.opt').forEach(function(b){
+      b.addEventListener('click', function(){
+        d[b.getAttribute('data-k')] = b.getAttribute('data-v');
+        self.root.querySelectorAll('.opt').forEach(function(x){ x.setAttribute('aria-checked', x === b ? 'true' : 'false'); });
+        if(next) next.disabled = false;
+        setTimeout(function(){ self.go(); }, 220);
+      });
+    });
+    if(s === 0){
+      var r = $('obRest');
+      r.addEventListener('input', function(){ d.restaurante = r.value; next.disabled = r.value.trim().length < 2; });
+      r.addEventListener('keydown', function(e){ if(e.key === 'Enter' && !next.disabled) self.go(); });
+      setTimeout(function(){ try{ r.focus({preventScroll:true}); }catch(e){} }, 50);
+    }
+    if(next) next.addEventListener('click', function(){ self.go(); });
+    if(s === 4){
+      maskPhone($('ldZap'));
+      $('leadF').addEventListener('submit', function(e){ e.preventDefault(); self.submitLead(); });
+    }
+  },
+
+  go:function(){ if(this.step < 4){ this.step++; this.render(); } },
+
+  submitLead:function(){
+    var d = this.data, bad = null;
+    var n = $('ldNome'), z = $('ldZap'), c = $('ldCid'), r = $('ldRest'), m = $('ldMail');
+    function chk(el, ok, msg){ setErr(el, ok ? '' : msg); if(!ok && !bad) bad = el; }
+    chk(n, n.value.trim().length >= 2, 'Informe seu nome.');
+    chk(z, z.value.replace(/\D/g,'').length >= 10, 'Informe um WhatsApp com DDD.');
+    chk(c, c.value.trim().length >= 2, 'Informe sua cidade.');
+    chk(r, r.value.trim().length >= 2, 'Informe o nome do restaurante.');
+    chk(m, !m.value.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m.value.trim()), 'E-mail inválido.');
+    if(bad){ bad.focus(); return; }
+    d.nome = n.value.trim(); d.whatsapp = z.value; d.cidade = c.value.trim(); d.restaurante = r.value.trim(); d.email = m.value.trim();
+    this.build();
+    saveLead({tipo:'maquina_recuperacao', nome:d.nome, whatsapp:d.whatsapp, restaurante:d.restaurante, cidade:d.cidade, email:d.email,
+      canal:d.canal, tamanho_base:d.tamanho, acompanha_inativos:d.acompanha,
+      estimativa_inativos:this.stats.inativos, estimativa_potencial:this.stats.potencial});
+    track('lead_captured', {canal:d.canal, tamanho:d.tamanho});
+    track('onboarding_complete');
+    this.step = 5; this.render();
+  },
+
+  build:function(){
+    var d = this.data, total = SIZES[d.tamanho] || 1842;
+    var at = Math.round(total*SHARE.at), inn = Math.round(total*SHARE.in), lo = Math.round(total*SHARE.lo);
+    var ina = at + inn + lo, ticket = calcTicket || 45;
+    this.stats = {total:total, ativos:total-ina, at:at, in:inn, lo:lo, inativos:ina, ticket:ticket, potencial:Math.round(ina*ticket)};
+    var R = rng((d.restaurante||'click').toLowerCase()), list = [], used = {};
+    function pick(a){ return a[Math.floor(R()*a.length)]; }
+    function name(){ for(var i=0;i<50;i++){ var nm = pick(FIRST)+' '+pick(LAST); if(!used[nm]){ used[nm]=1; return nm; } } return pick(FIRST)+' '+pick(LAST)+' '+(list.length+1); }
+    var nAt = Math.min(at, 14), nIn = Math.min(inn, 10), nLo = Math.min(lo, 8);
+    function add(n, a, b){ for(var i=0;i<n;i++){ var days = a + Math.floor(R()*(b-a+1)); var tk = Math.round(ticket*(0.6 + R()*1.2)); list.push({id:'c'+list.length, nome:name(), dias:days, ticket:tk, pedidos:1+Math.floor(R()*9)}); } }
+    add(nAt, 15, 29); add(nIn, 30, 59); add(nLo, 60, 120);
+    this.clients = list; this.selected = {};
+  },
+
+  renderAnalyzing:function(){
+    var self = this, steps = ['Organizando sua base de clientes','Separando quem está há 15, 30 e 60 dias sem comprar','Calculando o potencial de recompra','Preparando as mensagens de recuperação'];
+    this.root.innerHTML = this.shell('<div class="step analyzing"><div class="spinner" aria-hidden="true"></div><h2>Analisando sua base...</h2><ul class="an-list" id="anList">'+steps.map(function(t){ return '<li>'+t+'</li>'; }).join('')+'</ul></div>', 96);
+    var lis = $('anList').querySelectorAll('li'), i = 0;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    (function tick(){
+      if(i < lis.length){ lis[i++].classList.add('done'); setTimeout(tick, reduce ? 60 : 650); }
+      else setTimeout(function(){ self.step = 6; self.render(); track('dashboard_view'); }, reduce ? 60 : 400);
+    })();
+  },
+
+  status:function(days){ return days >= 60 ? {c:'lo', t:'Perdido'} : days >= 30 ? {c:'in', t:'Inativo'} : {c:'at', t:'Atenção'}; },
+
+  visible:function(){
+    var f = this.filter, min = f === '15' ? 15 : f === '30' ? 30 : f === '60' ? 60 : 0;
+    var l = this.clients.filter(function(c){ return c.dias >= min; });
+    var s = this.sort;
+    l.sort(function(a,b){ return s === 'ticket' ? b.ticket - a.ticket : b.dias - a.dias; });
+    return l;
+  },
+
+  renderDash:function(){
+    var st = this.stats, d = this.data, self = this;
+    var pct = function(v){ return (v/st.total*100).toLocaleString('pt-BR',{maximumFractionDigits:1}) + '%'; };
+    var html =
+    '<div class="dash">'+
+      '<div class="dash-head"><div><span class="eyebrow">'+esc(d.restaurante)+'</span><h2>'+esc(first(d.nome))+', você tem <span class="hl">'+nf.format(st.inativos)+' clientes</span> para recuperar.</h2>'+
+        '<p>Escolha quem você quer trazer de volta e envie a mensagem pelo WhatsApp.</p></div></div>'+
+      '<div class="sim-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v.01M12 11v5"/></svg><span>Simulação feita com as suas respostas e nomes fictícios. Ao assinar, você importa a planilha dos seus clientes e vê os nomes e números reais.</span></div>'+
+      '<div class="kpis">'+
+        '<div class="kpi"><small>Clientes totais</small><b>'+nf.format(st.total)+'</b></div>'+
+        '<div class="kpi"><small><i style="background:var(--accent)"></i>Ativos</small><b>'+nf.format(st.ativos)+'</b><em>'+pct(st.ativos)+'</em></div>'+
+        '<div class="kpi"><small><i style="background:#E9B949"></i>15 dias sem comprar</small><b>'+nf.format(st.at)+'</b><em>'+pct(st.at)+'</em></div>'+
+        '<div class="kpi"><small><i style="background:#E0823C"></i>30 dias sem comprar</small><b>'+nf.format(st.in)+'</b><em>'+pct(st.in)+'</em></div>'+
+        '<div class="kpi"><small><i style="background:#D1493A"></i>60+ dias sem comprar</small><b>'+nf.format(st.lo)+'</b><em>'+pct(st.lo)+'</em></div>'+
+        '<div class="kpi cash"><small>Receita potencial</small><b>'+brl0.format(st.potencial)+'</b><em>se cada inativo pedir 1 vez</em></div>'+
+      '</div>'+
+      '<div class="panel">'+
+        '<div class="toolbar"><div class="filters" role="group" aria-label="Filtrar por tempo sem comprar">'+
+          [['all','Todos'],['15','15+ dias'],['30','30+ dias'],['60','60+ dias']].map(function(o){ return '<button type="button" class="chip" data-f="'+o[0]+'" aria-pressed="'+(self.filter===o[0])+'">'+o[1]+'</button>'; }).join('')+
+        '</div><div class="tb-right"><label for="sortSel" style="font-size:13px;color:var(--ink2);font-weight:600">Ordenar</label><select class="sort" id="sortSel"><option value="days"'+(self.sort==='days'?' selected':'')+'>Mais tempo sem comprar</option><option value="ticket"'+(self.sort==='ticket'?' selected':'')+'>Maior ticket</option></select></div></div>'+
+        '<div class="sel-bar"><span class="count" id="selCount"></span><div class="sel-actions"><button type="button" class="linkbtn" id="selAll">Selecionar todos</button><button type="button" class="linkbtn" id="selNone">Limpar</button><button type="button" class="btn sm" id="recSel">Recuperar clientes</button></div></div>'+
+        '<div class="tbl-wrap"><table><thead><tr><th class="ck"><input type="checkbox" id="ckAll" aria-label="Selecionar todos da lista"></th><th>Cliente</th><th class="n">Último pedido</th><th class="n">Ticket médio</th><th>Status</th><th>Ação</th></tr></thead><tbody id="tb"></tbody></table></div>'+
+        '<div class="cards-m" id="cm"></div>'+
+        '<div class="tbl-foot"><span id="footInfo"></span><span>Nomes fictícios, só para demonstração</span></div>'+
+      '</div>'+
+      '<div class="sub-buy"><p>Quer ver os seus clientes reais?<span>Assine por R$ 49,90/mês, importe sua planilha e veja quem sumiu. Cancele quando quiser.</span></p><div style="display:grid;gap:8px"><a class="btn" href="#" data-buy="dashboard">Assinar por R$ 49,90/mês</a><div class="warnbox" data-nolink hidden>Link de pagamento ainda não configurado.</div></div></div>'+
+      '<div class="upsell"><div><span class="eyebrow">Click completa</span><h3>Isso é apenas uma parte do que a Click pode fazer pelo seu restaurante.</h3><p>Além de recuperar clientes, a Click ajuda seu restaurante a criar seu próprio canal de vendas, aumentar recompra e reduzir a dependência de marketplaces e ferramentas espalhadas.</p></div>'+
+        '<div class="btns"><a class="btn" id="upFull" href="#" target="_blank" rel="noopener">Quero conhecer a Click completa</a><a class="btn outline" id="upSpec" href="#" target="_blank" rel="noopener">Falar com um especialista</a></div></div>'+
+    '</div>';
+    this.root.innerHTML = html;
+    wireBuy(this.root);
+
+    var msgFull = 'Olá! Acabei de testar a Máquina de Recuperação e quero conhecer a Click completa.' + (d.restaurante ? ' Sou '+d.nome+', do '+d.restaurante+'.' : '');
+    $('upFull').href = waLink(msgFull, CONFIG.whatsappClick);
+    $('upSpec').href = waLink('Olá! Acabei de testar a Máquina de Recuperação e quero falar com um especialista da Click.' + (d.restaurante ? ' Sou '+d.nome+', do '+d.restaurante+'.' : ''), CONFIG.whatsappClick);
+    $('upFull').addEventListener('click', function(){ track('click_full_interest', {origem:'dashboard'}); });
+    $('upSpec').addEventListener('click', function(){ track('click_whatsapp', {origem:'dashboard_especialista'}); });
+
+    this.root.querySelectorAll('[data-f]').forEach(function(b){ b.addEventListener('click', function(){
+      self.filter = b.getAttribute('data-f');
+      self.root.querySelectorAll('[data-f]').forEach(function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      self.renderRows(); track('filter_use', {filtro:self.filter});
+    }); });
+    $('sortSel').addEventListener('change', function(){ self.sort = this.value; self.renderRows(); });
+    $('selAll').addEventListener('click', function(){ self.visible().forEach(function(c){ self.selected[c.id] = true; }); self.renderRows(); });
+    $('selNone').addEventListener('click', function(){ self.selected = {}; self.renderRows(); });
+    $('ckAll').addEventListener('change', function(){ var on = this.checked; self.visible().forEach(function(c){ if(on) self.selected[c.id] = true; else delete self.selected[c.id]; }); self.renderRows(); });
+    $('recSel').addEventListener('click', function(){
+      var ids = Object.keys(self.selected);
+      if(!ids.length){ toast('Selecione pelo menos um cliente.'); return; }
+      self.openCampaign(ids);
+    });
+    this.renderRows();
+  },
+
+  renderRows:function(){
+    var self = this, vis = this.visible(), tb = $('tb'), cm = $('cm');
+    tb.innerHTML = vis.map(function(c){
+      var s = self.status(c.dias), on = !!self.selected[c.id];
+      return '<tr class="'+(on?'sel':'')+'"><td class="ck"><input type="checkbox" data-ck="'+c.id+'" aria-label="Selecionar '+esc(c.nome)+'"'+(on?' checked':'')+'></td>'+
+        '<td><span class="who">'+esc(c.nome)+'</span><span class="last">'+c.pedidos+' '+(c.pedidos>1?'pedidos':'pedido')+' no histórico</span></td>'+
+        '<td class="n">'+c.dias+' dias</td><td class="n">'+brl0.format(c.ticket)+'</td><td><span class="tag '+s.c+'">'+s.t+'</span></td>'+
+        '<td><button type="button" class="rec" data-rec="'+c.id+'">Recuperar</button></td></tr>';
+    }).join('');
+    cm.innerHTML = vis.map(function(c){
+      var s = self.status(c.dias), on = !!self.selected[c.id];
+      return '<div class="cm'+(on?' sel':'')+'"><input type="checkbox" data-ck="'+c.id+'" aria-label="Selecionar '+esc(c.nome)+'"'+(on?' checked':'')+'>'+
+        '<div><span class="who">'+esc(c.nome)+'</span><span class="meta">'+c.dias+' dias · '+brl0.format(c.ticket)+'</span></div>'+
+        '<div class="rt"><span class="tag '+s.c+'">'+s.t+'</span><button type="button" class="rec" data-rec="'+c.id+'">Recuperar</button></div></div>';
+    }).join('');
+    this.root.querySelectorAll('[data-ck]').forEach(function(ck){ ck.addEventListener('change', function(){
+      var id = ck.getAttribute('data-ck'); if(ck.checked) self.selected[id] = true; else delete self.selected[id]; self.renderRows();
+    }); });
+    this.root.querySelectorAll('[data-rec]').forEach(function(b){ b.addEventListener('click', function(){ self.openCampaign([b.getAttribute('data-rec')]); }); });
+    var n = Object.keys(this.selected).length;
+    $('selCount').innerHTML = n ? '<b>'+n+'</b> '+(n>1?'clientes selecionados':'cliente selecionado') : 'Nenhum cliente selecionado';
+    $('recSel').textContent = n ? 'Recuperar '+n+' '+(n>1?'clientes':'cliente') : 'Recuperar clientes';
+    var allOn = vis.length && vis.every(function(c){ return self.selected[c.id]; });
+    $('ckAll').checked = !!allOn;
+    $('footInfo').textContent = 'Mostrando '+vis.length+' de '+nf.format(this.stats.inativos)+' clientes inativos';
+  },
+
+  openCampaign:function(ids){
+    var self = this, d = this.data;
+    var list = ids.map(function(id){ return self.clients.filter(function(c){ return c.id === id; })[0]; }).filter(Boolean);
+    track('recover_click', {qtd:list.length});
+    var camp = self.camp || (self.camp = {
+      msg:'Oi, {nome}! 👋\nSentimos sua falta aqui no '+(d.restaurante||'restaurante')+'.\n\nPreparamos uma condição especial para você voltar a pedir: {beneficio} com o cupom {cupom}, válido até {prazo}.\n\nÉ só chamar a gente por aqui 😊',
+      cupom:'VOLTEI10', beneficio:'10% de desconto', prazo:'domingo'
+    });
+    var bg = document.createElement('div'); bg.className = 'modal-bg';
+    bg.innerHTML =
+      '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">'+
+        '<div class="m-main" id="mMain">'+
+          '<div class="m-head"><div><h3 id="mTitle">Vamos trazer esses clientes de volta?</h3><p>'+(list.length>1 ? list.length+' clientes selecionados' : esc(list[0].nome)+', '+list[0].dias+' dias sem comprar')+'</p></div>'+
+          '<button type="button" class="x" id="mX" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'+
+          '<div class="f"><label for="mMsg">Mensagem</label><textarea id="mMsg" rows="7">'+esc(camp.msg)+'</textarea><span class="vars">Use <code>{nome}</code>, <code>{cupom}</code>, <code>{beneficio}</code> e <code>{prazo}</code>. Eles são trocados para cada cliente.</span></div>'+
+          '<div class="frow"><div class="f"><label for="mCup">Cupom</label><input id="mCup" value="'+esc(camp.cupom)+'"></div><div class="f"><label for="mBen">Benefício</label><input id="mBen" value="'+esc(camp.beneficio)+'"></div></div>'+
+          '<div class="f"><label for="mPra">Prazo</label><input id="mPra" value="'+esc(camp.prazo)+'"></div>'+
+          '<button type="button" class="btn" id="mSend">Enviar campanha</button>'+
+        '</div>'+
+        '<div class="m-side"><small>Prévia no WhatsApp</small><div class="wa-chat"><div class="wa-head"><i><svg viewBox="0 0 24 24" fill="#1F6E5B" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></i><div><b id="pvName"></b><span>cliente há '+list[0].dias+' dias sem pedir</span></div></div><div class="bubble" id="pvMsg"></div></div></div>'+
+      '</div>';
+    document.body.appendChild(bg);
+    document.body.style.overflow = 'hidden';
+    var prev = document.activeElement;
+    function fill(tpl, c){ return tpl.replace(/\{nome\}/g, first(c.nome)).replace(/\{cupom\}/g, $('mCup').value).replace(/\{beneficio\}/g, $('mBen').value).replace(/\{prazo\}/g, $('mPra').value); }
+    function preview(){
+      camp.msg = $('mMsg').value; camp.cupom = $('mCup').value; camp.beneficio = $('mBen').value; camp.prazo = $('mPra').value;
+      $('pvName').textContent = list[0].nome;
+      $('pvMsg').innerHTML = esc(fill(camp.msg, list[0])) + '<span class="t">agora</span>';
+    }
+    ['mMsg','mCup','mBen','mPra'].forEach(function(id){ $(id).addEventListener('input', preview); });
+    preview();
+    function close(){ bg.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); if(prev && prev.focus) prev.focus(); }
+    function onKey(e){ if(e.key === 'Escape') close(); }
+    document.addEventListener('keydown', onKey);
+    bg.addEventListener('click', function(e){ if(e.target === bg) close(); });
+    $('mX').addEventListener('click', close);
+    setTimeout(function(){ try{ $('mMsg').focus({preventScroll:true}); }catch(e){} }, 50);
+    $('mSend').addEventListener('click', function(){
+      if(!$('mMsg').value.trim()){ toast('Escreva a mensagem da campanha.'); return; }
+      track('campaign_prepared', {qtd:list.length});
+      list.forEach(function(c){ delete self.selected[c.id]; });
+      $('mMain').innerHTML =
+        '<div class="done-box"><div class="ok"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></div>'+
+        '<h3>Campanha preparada com sucesso.</h3><p style="color:var(--ink2)">'+list.length+' '+(list.length>1?'mensagens prontas':'mensagem pronta')+'. Toque em cada cliente para abrir o WhatsApp com a mensagem já escrita.</p>'+
+        '<div class="wa-list">'+list.map(function(c){ return '<div class="wa-item"><span><b>'+esc(c.nome)+'</b><br><span style="font-size:12.5px;color:var(--ink2)">'+c.dias+' dias sem comprar</span></span><a href="'+esc(waLink(fill(camp.msg, c)))+'" target="_blank" rel="noopener" data-wa>Abrir no WhatsApp</a></div>'; }).join('')+'</div>'+
+        '<p class="privacy">Como estes são clientes de demonstração, o WhatsApp abre para você escolher o contato. Na versão assinada, cada mensagem vai para o número do cliente.</p>'+
+        '<button type="button" class="btn dark" id="mDone">Voltar para a lista</button></div>';
+      $('mMain').querySelectorAll('[data-wa]').forEach(function(a){ a.addEventListener('click', function(){ track('campaign_whatsapp_open'); }); });
+      $('mDone').addEventListener('click', function(){ close(); self.renderRows(); });
+    });
+  }
+};
+
+route();
+})();
+</script>
+
+</body>
+</html>
