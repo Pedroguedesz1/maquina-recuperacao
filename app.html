@@ -965,12 +965,13 @@ function selList(){ return S.base.clients.filter(function(c){ return S.selected[
 function rows(){
   var st = stats(), vis = visible(), shown = vis.slice(0, S.limit), tp = S.base.ticketPadrao;
   function tick(c){ return c.ticket != null ? brl0.format(c.ticket) : '<span style="color:var(--ink3)">—</span>'; }
-  function action(c){ return waOk(c.tel) ? '<button type="button" class="rec" data-rec="'+c.id+'">Recuperar</button>' : '<span class="rec off" title="Sem telefone válido">Sem telefone</span>'; }
+  function action(c){ return waOk(c.tel) ? '<button type="button" class="rec" data-rec="'+c.id+'">Recuperar</button>' : '<span class="rec off" title="Sem telefone válido">'+(c.tel ? 'Telefone inválido' : 'Sem telefone')+'</span>'; }
+  function telTxt(c){ return !c.tel ? 'sem telefone' : waOk(c.tel) ? esc(fmtPhone(c.tel)) : '<span style="color:var(--bad)">telefone inválido</span>'; }
   function tags(c, s){ return '<span class="tag '+s.c+'">'+s.t+'</span>'+(c.contatado ? ' <span class="tag ct" title="Mensagem aberta em '+fmtDate(c.contatado)+'">Contatado '+fmtDate(c.contatado).slice(0,5)+'</span>' : ''); }
   $('tb').innerHTML = shown.map(function(c){
     var d = daysOf(c), s = status(d), on = !!S.selected[c.id];
     return '<tr class="'+(on ? 'sel' : '')+'"><td class="ck"><input type="checkbox" data-ck="'+c.id+'" aria-label="Selecionar '+esc(c.nome)+'"'+(on ? ' checked' : '')+'></td>'+
-      '<td><span class="who">'+esc(c.nome)+'</span><span class="tel">'+(c.tel ? esc(fmtPhone(c.tel)) : 'sem telefone')+'</span></td>'+
+      '<td><span class="who">'+esc(c.nome)+'</span><span class="tel">'+telTxt(c)+'</span></td>'+
       '<td class="n">'+fmtDate(c.ultimo)+'<br><span class="tel">'+d+' dias</span></td>'+
       (st.temPedidos ? '<td class="n">'+(c.pedidos != null ? c.pedidos : '—')+'</td>' : '')+
       '<td class="n">'+tick(c)+'</td><td>'+tags(c, s)+'</td><td>'+action(c)+'</td></tr>';
@@ -978,7 +979,7 @@ function rows(){
   $('cm').innerHTML = shown.map(function(c){
     var d = daysOf(c), s = status(d), on = !!S.selected[c.id];
     return '<div class="cm'+(on ? ' sel' : '')+'"><input type="checkbox" data-ck="'+c.id+'" aria-label="Selecionar '+esc(c.nome)+'"'+(on ? ' checked' : '')+'>'+
-      '<div><span class="who">'+esc(c.nome)+'</span><span class="meta">'+d+' dias · '+(c.ticket != null ? brl0.format(c.ticket) : 'sem valor')+(c.pedidos != null ? ' · '+c.pedidos+' ped.' : '')+'</span><br><span class="tel">'+(c.tel ? esc(fmtPhone(c.tel)) : 'sem telefone')+'</span></div>'+
+      '<div><span class="who">'+esc(c.nome)+'</span><span class="meta">'+d+' dias · '+(c.ticket != null ? brl0.format(c.ticket) : 'sem valor')+(c.pedidos != null ? ' · '+c.pedidos+' ped.' : '')+'</span><br><span class="tel">'+telTxt(c)+'</span></div>'+
       '<div class="rt">'+tags(c, s)+action(c)+'</div></div>';
   }).join('') || '<p style="text-align:center;color:var(--ink2);padding:16px">Nenhum cliente neste filtro.</p>';
   document.querySelectorAll('[data-ck]').forEach(function(ck){ ck.addEventListener('change', function(){ var id = ck.getAttribute('data-ck'); if(ck.checked) S.selected[id] = true; else delete S.selected[id]; rows(); }); });
@@ -1014,48 +1015,68 @@ function openCampaign(list){
   var B = S.base;
   track('recover_click', {qtd:list.length});
   var camp = S.camp || (S.camp = { msg:'Oi, {nome}! 👋\nSentimos sua falta aqui no '+B.restaurante+'.\n\nPreparamos uma condição especial para você voltar a pedir: {beneficio} com o cupom {cupom}, válido até {prazo}.\n\nÉ só chamar a gente por aqui 😊', cupom:'VOLTEI10', beneficio:'10% de desconto', prazo:'domingo' });
-  var withTel = list.filter(function(c){ return waOk(c.tel); }), noTel = list.length - withTel.length;
+  var queue = list.filter(function(c){ return waOk(c.tel); }), noTel = list.length - queue.length, head = queue[0] || list[0], opened = 0;
   var bg = document.createElement('div'); bg.className = 'modal-bg';
-  var head = list[0];
+  var mainBtn = queue.length === 1 ? 'Abrir no WhatsApp' : (queue.length ? 'Começar envio para '+nf.format(queue.length)+' clientes' : 'Nenhum cliente com telefone válido');
   bg.innerHTML =
     '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">'+
       '<div class="m-main" id="mMain">'+
-        '<div class="m-head"><div><h3 id="mTitle">Vamos trazer esses clientes de volta?</h3><p>'+(list.length > 1 ? nf.format(list.length)+' clientes selecionados' : esc(head.nome)+', '+daysOf(head)+' dias sem comprar')+(noTel ? ' · '+noTel+' sem telefone' : '')+'</p></div>'+
+        '<div class="m-head"><div><h3 id="mTitle">Vamos trazer esses clientes de volta?</h3><p>'+(list.length > 1 ? nf.format(list.length)+' clientes selecionados' : esc(head.nome)+', '+daysOf(head)+' dias sem comprar')+(noTel ? ' · '+pl(noTel,'sem telefone válido','sem telefone válido') : '')+'</p></div>'+
         '<button type="button" class="x" id="mX" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'+
         '<div class="f"><label for="mMsg">Mensagem</label><textarea id="mMsg" rows="7">'+esc(camp.msg)+'</textarea><span class="vars">Use <code>{nome}</code>, <code>{cupom}</code>, <code>{beneficio}</code> e <code>{prazo}</code>. Eles são trocados para cada cliente.</span></div>'+
         '<div class="frow"><div class="f"><label for="mCup">Cupom</label><input id="mCup" value="'+esc(camp.cupom)+'"></div><div class="f"><label for="mBen">Benefício</label><input id="mBen" value="'+esc(camp.beneficio)+'"></div></div>'+
         '<div class="f"><label for="mPra">Prazo</label><input id="mPra" value="'+esc(camp.prazo)+'"></div>'+
-        '<button type="button" class="btn" id="mSend"'+(withTel.length ? '' : ' disabled')+'>'+(withTel.length ? 'Preparar mensagens' : 'Nenhum cliente com telefone')+'</button>'+
+        (queue.length === 1 ? '<a class="btn" id="mSend" href="#" target="_blank" rel="noopener">'+mainBtn+'</a>' : '<button type="button" class="btn" id="mSend"'+(queue.length ? '' : ' disabled')+'>'+mainBtn+'</button>')+
       '</div>'+
-      '<div class="m-side"><small>Prévia no WhatsApp</small><div class="wa-chat"><div class="wa-head"><i><svg viewBox="0 0 24 24" fill="#1F6E5B" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></i><div><b id="pvName"></b><span>'+(head.tel ? esc(fmtPhone(head.tel)) : '')+'</span></div></div><div class="bubble" id="pvMsg"></div></div></div>'+
+      '<div class="m-side"><small>Prévia no WhatsApp</small><div class="wa-chat"><div class="wa-head"><i><svg viewBox="0 0 24 24" fill="#1F6E5B" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></i><div><b id="pvName"></b><span id="pvTel"></span></div></div><div class="bubble" id="pvMsg"></div></div></div>'+
     '</div>';
   document.body.appendChild(bg); document.body.style.overflow = 'hidden';
   var prev = document.activeElement;
-  function fill(t, c){ return t.replace(/\{nome\}/g, first(c.nome)).replace(/\{cupom\}/g, $('mCup').value).replace(/\{beneficio\}/g, $('mBen').value).replace(/\{prazo\}/g, $('mPra').value); }
-  function pv(){ camp.msg = $('mMsg').value; camp.cupom = $('mCup').value; camp.beneficio = $('mBen').value; camp.prazo = $('mPra').value; $('pvName').textContent = head.nome; $('pvMsg').innerHTML = esc(fill(camp.msg, head)) + '<span class="t">agora</span>'; }
-  ['mMsg','mCup','mBen','mPra'].forEach(function(id){ $(id).addEventListener('input', pv); }); pv();
-  function close(){ bg.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); rows(); if(prev && prev.focus) prev.focus(); }
-  function onKey(e){ if(e.key === 'Escape') close(); }
-  document.addEventListener('keydown', onKey);
-  bg.addEventListener('click', function(e){ if(e.target === bg) close(); });
-  $('mX').addEventListener('click', close);
-  $('mSend').addEventListener('click', function(){
-    if(!$('mMsg').value.trim()){ toast('Escreva a mensagem.'); return; }
-    track('campaign_prepared', {qtd:withTel.length});
-    reportUsage('campanha', {mensagens:withTel.length});
-    list.forEach(function(c){ delete S.selected[c.id]; });
+  function fill(c){ return camp.msg.replace(/\{nome\}/g, first(c.nome)).replace(/\{cupom\}/g, camp.cupom).replace(/\{beneficio\}/g, camp.beneficio).replace(/\{prazo\}/g, camp.prazo); }
+  function link(c){ return 'https://wa.me/' + c.tel + '?text=' + encodeURIComponent(fill(c)); }
+  function preview(c){ $('pvName').textContent = c.nome; $('pvTel').textContent = waOk(c.tel) ? fmtPhone(c.tel) : 'telefone inválido'; $('pvMsg').innerHTML = esc(fill(c)) + '<span class="t">agora</span>'; }
+  function readForm(){ if(!$('mMsg')) return; camp.msg = $('mMsg').value; camp.cupom = $('mCup').value; camp.beneficio = $('mBen').value; camp.prazo = $('mPra').value; }
+  function sync(){ readForm(); preview(head); if(queue.length === 1) $('mSend').href = link(queue[0]); }
+  ['mMsg','mCup','mBen','mPra'].forEach(function(id){ $(id).addEventListener('input', sync); }); sync();
+  function markSent(c){ c.contatado = Date.now(); delete S.selected[c.id]; opened++; save(); track('campaign_whatsapp_open'); }
+  function finish(){
+    if(opened) reportUsage('campanha', {mensagens:opened});
     $('mMain').innerHTML =
       '<div class="done-box"><div class="ok"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></div>'+
-      '<h3>Campanha preparada com sucesso.</h3><p style="color:var(--ink2)">Toque em cada cliente para abrir a conversa no WhatsApp com a mensagem pronta. Depois é só enviar.</p>'+
-      '<div class="wa-list">'+withTel.map(function(c){ return '<div class="wa-item" id="wi_'+c.id+'"><span><b>'+esc(c.nome)+'</b><br><span class="tel">'+esc(fmtPhone(c.tel))+' · '+daysOf(c)+' dias</span></span><a href="https://wa.me/'+c.tel+'?text='+encodeURIComponent(fill(camp.msg, c))+'" target="_blank" rel="noopener" data-wa="'+c.id+'">'+(c.contatado ? 'Abrir de novo' : 'Abrir no WhatsApp')+'</a></div>'; }).join('')+'</div>'+
-      '<p class="privacy">Envie aos poucos, só para quem já comprou de você, e respeite quem pedir para não receber mais mensagens. Isso protege o seu número.</p>'+
+      '<h3>'+(opened ? 'Pronto! '+pl(opened,'conversa aberta','conversas abertas')+'.' : 'Envio encerrado.')+'</h3>'+
+      '<p style="color:var(--ink2)">'+(opened ? 'Esses clientes ficaram marcados como <b>Contatado</b>. Confira no WhatsApp se todas as mensagens foram enviadas.' : 'Nenhuma conversa foi aberta.')+'</p>'+
       '<button type="button" class="btn dark" id="mDone">Voltar para a lista</button></div>';
-    $('mMain').querySelectorAll('[data-wa]').forEach(function(a){ a.addEventListener('click', function(){
-      var c = S.base.clients.filter(function(x){ return x.id === a.getAttribute('data-wa'); })[0];
-      if(c){ c.contatado = Date.now(); save(); a.textContent = 'Aberto ✓'; a.style.background = 'var(--bg2)'; a.style.color = 'var(--ink2)'; }
-      track('campaign_whatsapp_open');
-    }); });
     $('mDone').addEventListener('click', close);
+  }
+  function step(i){
+    if(i >= queue.length) return finish();
+    var c = queue[i]; preview(c);
+    $('mMain').innerHTML =
+      '<div class="m-head"><div><h3 id="mTitle">Cliente '+(i+1)+' de '+queue.length+'</h3><p>Abra a conversa, aperte enviar no WhatsApp e volte aqui para o próximo.</p></div>'+
+      '<button type="button" class="x" id="mX2" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'+
+      '<div class="progress" aria-hidden="true" style="margin:0"><i style="width:'+(i / queue.length * 100)+'%"></i></div>'+
+      '<div class="wa-item"><span><b>'+esc(c.nome)+'</b><br><span class="tel">'+esc(fmtPhone(c.tel))+' · '+daysOf(c)+' dias sem comprar</span></span>'+(c.contatado ? '<span class="tag ct">Já contatado</span>' : '')+'</div>'+
+      '<a class="btn" id="qOpen" href="'+esc(link(c))+'" target="_blank" rel="noopener" style="background:#25D366;color:#0A2D14">Abrir WhatsApp de '+esc(first(c.nome))+'</a>'+
+      '<div class="step-nav"><button type="button" class="back" id="qSkip">Pular este cliente</button><button type="button" class="back" id="qStop">Encerrar envio</button></div>'+
+      '<p class="privacy">Envie aos poucos, só para quem já comprou de você, e respeite quem pedir para não receber mais mensagens. Isso protege o seu número.</p>';
+    $('mX2').addEventListener('click', function(){ finish(); close(); });
+    $('qOpen').addEventListener('click', function(){ markSent(c); setTimeout(function(){ step(i + 1); }, 400); });
+    $('qSkip').addEventListener('click', function(){ step(i + 1); });
+    $('qStop').addEventListener('click', finish);
+  }
+  function close(){ bg.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); rows(); if(prev && prev.focus) prev.focus(); }
+  function onKey(e){ if(e.key === 'Escape'){ if(opened) reportUsage('campanha', {mensagens:opened}); opened = 0; close(); } }
+  document.addEventListener('keydown', onKey);
+  bg.addEventListener('click', function(e){ if(e.target === bg){ if(opened) reportUsage('campanha', {mensagens:opened}); opened = 0; close(); } });
+  $('mX').addEventListener('click', close);
+  setTimeout(function(){ try{ $('mMsg').focus({preventScroll:true}); }catch(e){} }, 50);
+  $('mSend').addEventListener('click', function(e){
+    readForm();
+    if(!camp.msg.trim()){ e.preventDefault(); toast('Escreva a mensagem.'); return; }
+    if(!queue.length){ e.preventDefault(); return; }
+    track('campaign_prepared', {qtd:queue.length});
+    if(queue.length === 1){ markSent(queue[0]); setTimeout(finish, 400); return; }
+    step(0);
   });
 }
 

@@ -504,7 +504,9 @@ tr.sel td{background:var(--accent-soft)}
    leadWebhook      endpoint que recebe os leads em JSON (CRM, n8n, Make, Zapier). Vazio = só salva no navegador
 */
 var CONFIG = {
-  checkoutUrl: "",
+  /* TEMPORÁRIO: enquanto o gateway não está pronto, o botão de assinar leva direto ao app.
+     Antes de anunciar, troque pelo link do checkout (ex.: "https://www.asaas.com/c/xxxx"). */
+  checkoutUrl: "app.html",
   whatsappClick: "",
   leadWebhook: "",
   supabaseUrl: "https://msrilojbncclwksphjjt.supabase.co",
@@ -573,12 +575,13 @@ function setErr(el, msg){ var f = el.closest('.f'); if(!f) return; f.classList.t
 
 /* ---------- checkout ---------- */
 function checkoutHref(){
+  if(!/^https?:/i.test(CONFIG.checkoutUrl)) return CONFIG.checkoutUrl;
   try{ var u = new URL(CONFIG.checkoutUrl); Object.keys(utm).forEach(function(k){ u.searchParams.set(k, utm[k]); }); return u.toString(); }catch(e){ return CONFIG.checkoutUrl; }
 }
 function wireBuy(root){
   (root||document).querySelectorAll('[data-buy]').forEach(function(a){
     if(a._wired) return; a._wired = true;
-    if(CONFIG.checkoutUrl){ a.href = checkoutHref(); a.target = '_blank'; a.rel = 'noopener'; }
+    if(CONFIG.checkoutUrl){ a.href = checkoutHref(); if(/^https?:/i.test(CONFIG.checkoutUrl)){ a.target = '_blank'; a.rel = 'noopener'; } }
     a.addEventListener('click', function(e){
       track('checkout_click', {origem: a.getAttribute('data-buy')});
       if(!CONFIG.checkoutUrl){ e.preventDefault(); var w = a.parentNode.querySelector('[data-nolink]'); if(w) w.hidden = false; else toast('Link de pagamento ainda não configurado.'); }
