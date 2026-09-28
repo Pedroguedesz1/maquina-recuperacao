@@ -8,6 +8,7 @@ Produto de entrada da Click (R$ 49,90/mês). O restaurante assina, importa a pla
 |---|---|
 | `index.html` | LP de venda + demonstração (`index.html#maquina`) com dados fictícios |
 | `app.html` | **A ferramenta real**, entregue depois do pagamento |
+| `raio-x.html` | **Raio-X grátis**: cadastro + importação, mostra os números reais com nomes e telefones borrados e leva para a assinatura |
 | `modelo-clientes.csv` | Planilha modelo para quem não tem sistema |
 
 ## Fluxo
@@ -22,21 +23,29 @@ Anúncio → `index.html` → botão de assinatura → checkout do gateway → *
 - Faixas: ativo (até 14 dias), atenção (15–29), inativo (30–59), perdido (60+). Também mostra "pediram só 1 vez" quando há número de pedidos.
 - Filtros, busca, ordenação, seleção, "copiar telefones", "exportar lista" (CSV), campanha com mensagem editável (cupom, benefício, prazo) e botão que abre o WhatsApp **no número do cliente** com a mensagem pronta.
 - Marca quem já foi contatado, e a marcação continua depois de reimportar a base.
-- **Os dados ficam só no navegador do restaurante** (`localStorage`). Nada é enviado para a Click. Trocou de aparelho ou limpou o navegador? É só importar de novo.
+- **Nomes e telefones dos clientes ficam só no navegador do restaurante** (`localStorage`). A Click recebe apenas números agregados (veja "Banco de dados"). Trocou de aparelho ou limpou o navegador? É só importar de novo.
 
 ## Configuração
 
 `index.html`, no fim do arquivo:
 
 ```js
-var CONFIG = { checkoutUrl: "", whatsappClick: "", leadWebhook: "" };
+var CONFIG = { checkoutUrl: "", whatsappClick: "", leadWebhook: "",
+  supabaseUrl: "https://msrilojbncclwksphjjt.supabase.co", supabaseKey: "sb_publishable_..." };
 ```
 
 `app.html`, no fim do arquivo:
 
 ```js
-var CONFIG = { whatsappClick: "", modeloUrl: "modelo-clientes.csv" };
+var CONFIG = { whatsappClick: "", modeloUrl: "modelo-clientes.csv",
+  supabaseUrl: "https://msrilojbncclwksphjjt.supabase.co", supabaseKey: "sb_publishable_..." };
 ```
+
+## Banco de dados (Supabase)
+
+- `leads`: cadastros da LP (demonstração e "Conhecer a Click completa") e do **Raio-X** (`tipo = raio_x`, com tamanho da base, clientes sumidos e receita parada), com UTMs.
+- `uso_app`: a cada importação e campanha, só números agregados (total de clientes, ativos, 15/30/60+ dias, receita parada, mensagens, sistema de origem). Nenhum nome ou telefone de cliente final é enviado.
+- A chave publicável só permite **inserir** (RLS). Para ler os dados, use o painel do Supabase (Table Editor).
 
 ## Limitações desta versão (MVP)
 
