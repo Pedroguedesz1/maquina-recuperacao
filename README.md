@@ -45,6 +45,7 @@ var CONFIG = { whatsappClick: "", modeloUrl: "modelo-clientes.csv",
 
 - `leads`: cadastros da LP (demonstração e "Conhecer a Click completa") e do **Raio-X** (`tipo = raio_x`, com tamanho da base, clientes sumidos e receita parada), com UTMs.
 - `uso_app`: a cada importação e campanha, só números agregados (total de clientes, ativos, 15/30/60+ dias, receita parada, mensagens, sistema de origem). Nenhum nome ou telefone de cliente final é enviado.
+- **Volume de pedidos (priorização para a Click completa):** o Raio-X pergunta a faixa de pedidos por mês (`pedidos_faixa_dono`). Se a planilha tiver uma linha por pedido, o app conta os pedidos dos últimos 90 dias e usa esse número (`pedidos_mes_fonte = planilha`); se não, usa o meio da faixa informada (`dono`). Grava `pedidos_mes`, `potencial_click_mes` (pedidos × R$ 0,99) e `faixa` (A: 1.000+, B: 300–999, C: menos de 300) em `leads` e em `uso_app`.
 - A chave publicável só permite **inserir** (RLS). Para ler os dados, use o painel do Supabase (Table Editor).
 
 ## Limitações desta versão (MVP)

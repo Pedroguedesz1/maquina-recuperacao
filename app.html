@@ -372,7 +372,7 @@ tr.sel td{background:var(--accent-soft)}
 }
 
 /* ======= Raio-X grátis ======= */
-.rx-lead{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.rx-lead{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .rx-lock{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;background:var(--inv);color:var(--inv-ink);border-radius:22px;padding:18px 20px}
 .rx-lock .ic{width:48px;height:48px;border-radius:14px;background:var(--accent);color:#08170C;display:grid;place-items:center}
 .rx-lock b{display:block;font-size:18px;letter-spacing:-.01em}
@@ -498,10 +498,12 @@ function reportUsage(evento, extra){
   var st = stats();
   var row = Object.assign({evento:evento, restaurante:S.base.restaurante || null, email:null, sistema:S.base.sistema || null,
     total_clientes:st.total, ativos:st.ativo, inativos_15:st.d15, inativos_30:st.d30, inativos_60:st.d60,
-    receita_parada:Math.round(st.pot), mensagens:null}, extra || {});
+    receita_parada:Math.round(st.pot), mensagens:null}, volumeUso(), extra || {});
   try{ fetch(CONFIG.supabaseUrl.replace(/\/$/,'') + '/rest/v1/uso_app', {method:'POST', keepalive:true,
     headers:{'apikey':CONFIG.supabaseKey, 'Content-Type':'application/json', 'Prefer':'return=minimal'}, body:JSON.stringify(row)}).catch(function(){}); }catch(e){}
 }
+
+function volumeUso(){ var v = volumeLead(S.base.pedidosMes, RAIOX ? rxLead().pedidos : null); return {pedidos_mes:v.pedidos_mes, potencial_click_mes:v.potencial_click_mes, faixa:v.faixa}; }
 
 /* ---------- armazenamento local ---------- */
 function load(){ try{ var s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
@@ -673,13 +675,14 @@ function bestDateCol(headers, rows, avoid){
   return best;
 }
 function aggregate(rows, map){
-  var byKey = {}, skipped = 0, noName = 0, perRow = 0;
+  var byKey = {}, skipped = 0, noName = 0, perRow = 0, dates = [];
   rows.forEach(function(r){
     var nome = normName(map.nome != null ? r[map.nome] : '');
     var tel = map.tel != null ? normPhone(r[map.tel]) : '';
     var dt = parseDate(map.data != null ? r[map.data] : null);
     if(!nome && !tel){ noName++; return; }
     if(dt == null){ skipped++; return; }
+    dates.push(dt);
     var key = tel && tel.length >= 10 ? 't' + tel : 'n' + keyName(nome);
     var val = map.valor != null ? parseMoney(r[map.valor]) : null;
     var q = map.qtd != null ? parseMoney(r[map.qtd]) : null;
@@ -699,7 +702,37 @@ function aggregate(rows, map){
     return {id:'c'+i, nome:c.nome, tel:c.tel, ultimo:c.ultimo, pedidos: c.qtdCol ? Math.round(c.qtd) : (map.qtd != null ? null : c.linhas), ticket: c.nVal ? Math.round(c.soma / c.nVal * 100) / 100 : null, contatado:null};
   });
   if(map.qtd == null && perRow === 0) list.forEach(function(c){ c.pedidos = null; });
-  return {clients:list, skipped:skipped, noName:noName, rowsPerOrder: perRow > 0};
+  return {clients:list, skipped:skipped, noName:noName, rowsPerOrder: perRow > 0, pedidosMes: perRow > 0 ? ordersPerMonth(dates) : null};
+}
+
+/* ---------- volume de pedidos (para priorizar leads da Click completa) ----------
+   Só quando a planilha tem uma linha por pedido: conta os pedidos dos últimos 90 dias
+   (ou do período que a planilha cobre, se for menor) e converte para um mês de 30 dias. */
+var DAY = 864e5;
+function ordersPerMonth(dates){
+  if(!dates.length) return null;
+  var max = -Infinity, min = Infinity;
+  dates.forEach(function(d){ if(d > max) max = d; if(d < min) min = d; });
+  var ref = Math.min(max, today0() + DAY);
+  var span = Math.max(30, Math.min(90, (ref - min) / DAY + 1));
+  var from = ref - span * DAY, n = 0;
+  dates.forEach(function(d){ if(d > from && d <= ref) n++; });
+  return Math.round(n / (span / 30));
+}
+/* Faixa que o dono informa no Raio-X; o meio da faixa é usado quando a planilha não permite contar. */
+var PED_FAIXAS = [
+  {v:'ate_300', label:'Até 300', meio:150},
+  {v:'300_1000', label:'300 a 1.000', meio:650},
+  {v:'1000_3000', label:'1.000 a 3.000', meio:2000},
+  {v:'3000_mais', label:'Mais de 3.000', meio:4000}
+];
+var PRECO_PEDIDO_CLICK = 0.99;
+function volumeLead(pedidosPlanilha, faixaDono){
+  var f = PED_FAIXAS.filter(function(x){ return x.v === faixaDono; })[0];
+  var ped = pedidosPlanilha != null ? pedidosPlanilha : (f ? f.meio : null);
+  if(ped == null) return {pedidos_mes:null, pedidos_mes_fonte:null, potencial_click_mes:null, faixa:null};
+  return {pedidos_mes:ped, pedidos_mes_fonte: pedidosPlanilha != null ? 'planilha' : 'dono',
+    potencial_click_mes: Math.round(ped * PRECO_PEDIDO_CLICK), faixa: ped >= 1000 ? 'A' : ped >= 300 ? 'B' : 'C'};
 }
 
 /* ---------- dados de exemplo ---------- */
@@ -774,7 +807,7 @@ function renderImport(errMsg){
     '<div class="imp-head"><span class="eyebrow">'+(hasOld ? 'Atualizar base' : 'Passo 1 de 2')+'</span><h1>Importe seus clientes e descubra quem sumiu.</h1>'+
     '<p class="lead">Envie a planilha de clientes ou de pedidos do seu restaurante. A Máquina separa quem está ativo e quem parou de pedir.</p></div>')+
     (errMsg ? '<div class="msg-err">'+errMsg+'</div>' : '')+
-    (RAIOX ? '<div class="rx-lead"><div class="f"><label for="rxNome">Seu nome</label><input id="rxNome" autocomplete="name" value="'+esc(rxLead().nome||'')+'"></div><div class="f"><label for="rxZap">WhatsApp</label><input id="rxZap" type="tel" inputmode="tel" autocomplete="tel" placeholder="(61) 90000-0000" value="'+esc(rxLead().whatsapp||'')+'"></div><div class="f"><label for="restName">Restaurante</label><input id="restName" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(S.base && S.base.restaurante || lsGet(REST_KEY) || '')+'"></div></div>' :
+    (RAIOX ? '<div class="rx-lead"><div class="f"><label for="rxNome">Seu nome</label><input id="rxNome" autocomplete="name" value="'+esc(rxLead().nome||'')+'"></div><div class="f"><label for="rxZap">WhatsApp</label><input id="rxZap" type="tel" inputmode="tel" autocomplete="tel" placeholder="(61) 90000-0000" value="'+esc(rxLead().whatsapp||'')+'"></div><div class="f"><label for="restName">Restaurante</label><input id="restName" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(S.base && S.base.restaurante || lsGet(REST_KEY) || '')+'"></div><div class="f"><label for="rxPed">Pedidos por mês, mais ou menos</label><select id="rxPed"><option value="">Escolha</option>'+PED_FAIXAS.map(function(o){ return '<option value="'+o.v+'"'+(rxLead().pedidos === o.v ? ' selected' : '')+'>'+o.label+'</option>'; }).join('')+'</select></div></div>' :
     '<div class="f" style="max-width:420px"><label for="restName">Nome do restaurante</label><input id="restName" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(S.base && S.base.restaurante || lsGet(REST_KEY) || '')+'"></div>')+
     '<label class="drop" id="drop" for="fileIn">'+
       '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></span>'+
@@ -806,7 +839,7 @@ function renderImport(errMsg){
   ['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('over'); }); });
   ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
   drop.addEventListener('drop', function(e){ var f = e.dataTransfer && e.dataTransfer.files[0]; if(f) readFile(f); });
-  if(RAIOX){ ['rxNome','rxZap'].forEach(function(id){ $(id).addEventListener('input', function(){ var l = rxLead(); l[id === 'rxNome' ? 'nome' : 'whatsapp'] = this.value; lsSet(LEAD_KEY, JSON.stringify(l)); }); }); maskPhoneInput($('rxZap')); }
+  if(RAIOX){ ['rxNome','rxZap'].forEach(function(id){ $(id).addEventListener('input', function(){ var l = rxLead(); l[id === 'rxNome' ? 'nome' : 'whatsapp'] = this.value; lsSet(LEAD_KEY, JSON.stringify(l)); }); }); maskPhoneInput($('rxZap')); $('rxPed').addEventListener('change', function(){ var l = rxLead(); l.pedidos = this.value; lsSet(LEAD_KEY, JSON.stringify(l)); }); }
   if($('useSample')) $('useSample').addEventListener('click', function(){ track('import_sample'); startMap(sampleRows(), 'dados-de-exemplo.csv', true); });
   $('dlModelo').addEventListener('click', function(){ track('template_download'); });
   if($('cancelImp')) $('cancelImp').addEventListener('click', function(){ S.view = null; render(); });
@@ -816,7 +849,7 @@ $('fileIn').addEventListener('change', function(){ var f = this.files[0]; this.v
 
 function readFile(file){
   var renderImport = function(m){ if(S.mode === 'phones' && S.base){ S.mode = 'base'; S.view = null; render(); toast(String(m||'').replace(/<[^>]+>/g,'')); } else renderImportScreen(m); };
-  if(RAIOX && S.mode !== 'phones'){ var L = rxLead(), rn = ($('restName') && $('restName').value.trim()) || ''; if(String(L.nome||'').trim().length < 2 || String(L.whatsapp||'').replace(/\D/g,'').length < 10 || rn.length < 2){ renderImport('Preencha <b>seu nome</b>, <b>WhatsApp</b> e o <b>nome do restaurante</b> para ver o seu Raio-X.'); return; } lsSet(REST_KEY, rn); }
+  if(RAIOX && S.mode !== 'phones'){ var L = rxLead(), rn = ($('restName') && $('restName').value.trim()) || ''; if(String(L.nome||'').trim().length < 2 || String(L.whatsapp||'').replace(/\D/g,'').length < 10 || rn.length < 2 || !L.pedidos){ renderImport('Preencha <b>seu nome</b>, <b>WhatsApp</b>, o <b>nome do restaurante</b> e os <b>pedidos por mês</b> para ver o seu Raio-X.'); return; } lsSet(REST_KEY, rn); }
   var name = file.name || 'planilha', ext = name.split('.').pop().toLowerCase();
   if(file.size > 25 * 1024 * 1024){ renderImport('O arquivo passa de 25 MB. Exporte só os últimos 12 meses de pedidos e tente de novo.'); return; }
   if(ext === 'xls' || ext === 'ods' || ext === 'numbers'){ renderImport('Esse formato não é aceito. Abra a planilha e salve como <b>Excel (.xlsx)</b> ou <b>CSV</b>.'); return; }
@@ -869,8 +902,8 @@ function renderMap(errMsg){
     (P.sample ? '<div class="msg-warn">Estes são dados de exemplo, com nomes e telefones fictícios. Use para conhecer a ferramenta e depois importe a sua planilha.</div>' : '')+
     '<div class="card" style="gap:14px">'+(PH ? '' : '<div class="f"><label for="mapRest">Nome do restaurante</label><input id="mapRest" autocomplete="organization" value="'+esc(P.restaurante)+'" placeholder="Ex.: Burger da Vila"></div>')+
     '<div class="map-grid">'+fields.map(sel).join('')+(PH || P.sample ? '' : '<div class="f"><label for="mapSis">De qual sistema veio a planilha? <span style="font-weight:500;color:var(--ink2)">(opcional)</span></label><select id="mapSis"><option value="">Escolha</option>'+['Cardápio Web','Anota AI','Saipos','Goomer','Consumer','Outro sistema','Planilha própria'].map(function(o){ return '<option'+(P.sistema===o?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>')+'</div></div>'+
-    '<div><p style="font-weight:700;font-size:14px;margin-bottom:8px">Primeiras linhas da planilha</p><div class="pv-wrap"><table><thead><tr>'+P.headers.map(function(h){ return '<th>'+esc(h)+'</th>'; }).join('')+'</tr></thead><tbody>'+
-      prev.map(function(r){ return '<tr>'+P.headers.map(function(_, i){ var v = r[i]; if(v instanceof Date) v = fmtDate(v.getTime()); return '<td>'+esc(v)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div></div>'+
+    '<div><p style="font-weight:700;font-size:14px;margin-bottom:8px">Primeiras linhas da planilha'+(RAIOX ? ' <span style="font-weight:500;color:var(--ink2)">(os dados aparecem na assinatura)</span>' : '')+'</p><div class="pv-wrap"><table><thead><tr>'+P.headers.map(function(h){ return '<th>'+esc(h)+'</th>'; }).join('')+'</tr></thead><tbody>'+
+      prev.map(function(r){ return '<tr>'+P.headers.map(function(_, i){ var v = r[i]; if(v instanceof Date) v = fmtDate(v.getTime()); return '<td>'+(RAIOX ? '<span class="blur">'+esc(v)+'</span>' : esc(v))+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div></div>'+
     '<div class="step-nav"><button type="button" class="back" id="mapBack">Voltar</button><button type="button" class="btn" id="mapGo">'+(PH ? 'Completar telefones' : 'Analisar meus clientes')+'</button></div>'+
   '</div>';
   function dateHint(){
@@ -911,13 +944,13 @@ function runImport(){
   }
   var res = aggregate(P.rows, P.map);
   if(!res.clients.length) return renderMap('Nenhuma linha teve uma data válida na coluna escolhida. Confira se escolheu a coluna certa. As datas precisam estar como 25/09/2026 ou 2026-09-25.');
-  S.base = {restaurante: (P.restaurante || '').trim() || 'Meu restaurante', sistema: P.sistema || null, arquivo:P.file, importadoEm:Date.now(), sample:!!P.sample, clients:res.clients, ticketPadrao:45, porPedido:res.rowsPerOrder, ignoradas:res.skipped + res.noName};
+  S.base = {restaurante: (P.restaurante || '').trim() || 'Meu restaurante', sistema: P.sistema || null, arquivo:P.file, importadoEm:Date.now(), sample:!!P.sample, clients:res.clients, ticketPadrao:45, porPedido:res.rowsPerOrder, pedidosMes:res.pedidosMes, ignoradas:res.skipped + res.noName};
   var old = load();
   if(old && old.clients && !P.sample){ var sent = {}; old.clients.forEach(function(c){ if(c.contatado) sent[(c.tel || '') + '|' + keyName(c.nome)] = c.contatado; }); S.base.clients.forEach(function(c){ var k = (c.tel || '') + '|' + keyName(c.nome); if(sent[k]) c.contatado = sent[k]; }); }
   save();
   track('import_done', {clientes:res.clients.length, por_pedido:res.rowsPerOrder, amostra:!!P.sample});
   reportUsage(RAIOX ? 'raio_x' : 'importou');
-  if(RAIOX && !P.sample){ var st0 = stats(), L0 = rxLead(); sbPost('leads', {tipo:'raio_x', origem:'raio_x', nome:L0.nome||null, whatsapp:L0.whatsapp||null, restaurante:S.base.restaurante, canal:S.base.sistema||null, tamanho_base:String(st0.total), estimativa_inativos:st0.inativos, estimativa_potencial:Math.round(st0.pot), utm:rxUtm()}); track('lead_captured', {origem:'raio_x'}); }
+  if(RAIOX && !P.sample){ var st0 = stats(), L0 = rxLead(); sbPost('leads', Object.assign({tipo:'raio_x', origem:'raio_x', nome:L0.nome||null, whatsapp:L0.whatsapp||null, restaurante:S.base.restaurante, canal:S.base.sistema||null, tamanho_base:String(st0.total), estimativa_inativos:st0.inativos, estimativa_potencial:Math.round(st0.pot), utm:rxUtm(), pedidos_faixa_dono:L0.pedidos||null}, volumeLead(S.base.pedidosMes, L0.pedidos))); track('lead_captured', {origem:'raio_x'}); }
   S.view = null; S.pending = null; S.selected = {}; S.filter = 'inativos'; S.limit = 50; S.q = '';
   render(); window.scrollTo(0,0);
   toast(nf.format(res.clients.length) + ' clientes importados.');
