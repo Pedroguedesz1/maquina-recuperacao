@@ -8,7 +8,7 @@
 <meta name="description" content="Importe seus clientes e descubra quem parou de pedir no seu restaurante.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap"></noscript>
 <style>
 
 :root{
@@ -460,7 +460,8 @@ tr.sel td{background:var(--accent-soft)}
 .qz .sub{color:var(--ink2);font-size:16px;margin-top:-8px}
 .qopts{display:grid;gap:10px}
 .qopt{display:flex;align-items:center;gap:14px;background:var(--surface);border-radius:18px;padding:16px 18px;box-shadow:inset 0 0 0 1.5px var(--line);font:700 16px/1.3 var(--font);color:var(--ink);text-align:left;cursor:pointer;border:0;transition:transform .12s,box-shadow .12s}
-.qopt:hover{box-shadow:inset 0 0 0 2px var(--accent-text);transform:translateY(-1px)}
+@media (hover:hover){.qopt:hover{box-shadow:inset 0 0 0 2px var(--accent-text);transform:translateY(-1px)}}
+.qopt.picked{box-shadow:inset 0 0 0 2px var(--accent-text);background:var(--accent-soft)}
 .qopt .em{width:42px;height:42px;border-radius:12px;background:var(--bg);display:grid;place-items:center;font-size:22px;flex:none}
 .qopt small{display:block;font-weight:500;color:var(--ink2);font-size:13.5px}
 .qstep{animation:rise .35s ease both;display:grid;gap:16px}
@@ -556,6 +557,7 @@ var CONFIG = {
 var RAIOX = /*RAIOX*/false;
 (function(){
 "use strict";
+if(RAIOX){ var nb = document.querySelector('.navbar'); if(nb) nb.hidden = true; }
 var $ = function(id){ return document.getElementById(id); };
 var nf = new Intl.NumberFormat('pt-BR');
 var brl0 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
@@ -574,7 +576,7 @@ function today0(){ var d = new Date(); d.setHours(0,0,0,0); return d.getTime(); 
 function reportUsage(evento, extra){
   if(!CONFIG.supabaseUrl || !CONFIG.supabaseKey || !S.base || S.base.sample) return;
   var st = stats();
-  var row = Object.assign({evento:evento, restaurante:S.base.restaurante || null, email:null, sistema:S.base.sistema || null,
+  var row = Object.assign({evento:evento, restaurante:String(S.base.restaurante || '').slice(0, 80) || null, email:null, sistema:S.base.sistema || null,
     total_clientes:st.total, ativos:st.ativo, inativos_15:st.d15, inativos_30:st.d30, inativos_60:st.d60,
     receita_parada:Math.round(st.pot), mensagens:null}, volumeUso(), extra || {});
   try{ fetch(CONFIG.supabaseUrl.replace(/\/$/,'') + '/rest/v1/uso_app', {method:'POST', keepalive:true,
@@ -836,7 +838,7 @@ function rxLead(){ try{ return JSON.parse(lsGet(LEAD_KEY)) || {}; }catch(e){ ret
 function rxUtm(){ var u = {}; try{ var q = new URLSearchParams(location.search); ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid','gclid'].forEach(function(k){ if(q.get(k)) u[k] = q.get(k); }); }catch(e){} return Object.keys(u).length ? u : null; }
 function maskName(n){ return String(n||'').trim().split(/\s+/).map(function(w){ return w.charAt(0) + '•'.repeat(Math.max(2, Math.min(6, w.length - 1))); }).join(' '); }
 function maskPhoneInput(el){ el.addEventListener('input', function(){ var d = el.value.replace(/\D/g,'').slice(0,11), o = d; if(d.length > 2) o = '(' + d.slice(0,2) + ') ' + d.slice(2); if(d.length > 7) o = '(' + d.slice(0,2) + ') ' + d.slice(2, d.length-4) + '-' + d.slice(-4); el.value = o; }); }
-function sbPost(table, row){ if(!CONFIG.supabaseUrl || !CONFIG.supabaseKey) return; try{ fetch(CONFIG.supabaseUrl.replace(/\/$/,'') + '/rest/v1/' + table, {method:'POST', keepalive:true, headers:{'apikey':CONFIG.supabaseKey, 'Content-Type':'application/json', 'Prefer':'return=minimal'}, body:JSON.stringify(row)}).catch(function(){}); }catch(e){} }
+function sbPost(table, row){ if(!CONFIG.supabaseUrl || !CONFIG.supabaseKey) return; Object.keys(row).forEach(function(k){ if(typeof row[k] === 'string') row[k] = row[k].trim().slice(0, 120) || null; }); try{ fetch(CONFIG.supabaseUrl.replace(/\/$/,'') + '/rest/v1/' + table, {method:'POST', keepalive:true, headers:{'apikey':CONFIG.supabaseKey, 'Content-Type':'application/json', 'Prefer':'return=minimal'}, body:JSON.stringify(row)}).catch(function(){}); }catch(e){} }
 function checkoutLink(){ var u = CONFIG.checkoutUrl; try{ var x = new URL(u); var q = new URLSearchParams(location.search); ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(function(k){ if(q.get(k)) x.searchParams.set(k, q.get(k)); }); return x.toString(); }catch(e){ return u; } }
 function openUnlock(origem){
   track('paywall_view', {origem:origem});
@@ -954,7 +956,7 @@ function renderConnect(){
             '<div class="qr" id="qrBox">'+(C.qrcode ? '<img src="'+C.qrcode+'" alt="QR code para conectar o WhatsApp">' : '<span class="spinner" aria-hidden="true"></span><span>Gerando o QR code…</span>')+'</div>'+
             '<p style="font-size:13.5px;color:var(--ink2);text-align:center">O QR code se renova sozinho. <button type="button" class="linkbtn" id="qrNew">Gerar outro agora</button></p>'
           :
-            '<div class="f"><label for="pcPhone">WhatsApp do restaurante</label><input id="pcPhone" type="tel" inputmode="tel" placeholder="(61) 90000-0000" value="'+esc(C.phone)+'"></div>'+
+            '<div class="f"><label for="pcPhone">WhatsApp do restaurante</label><input id="pcPhone" type="tel" inputmode="tel" placeholder="(61) 90000-0000" value="'+esc(C.phone)+'" maxlength="20"></div>'+
             '<button type="button" class="btn" id="pcGo"'+(C.busy ? ' disabled' : '')+'>'+(C.busy ? 'Gerando…' : (C.paircode ? 'Gerar outro código' : 'Gerar código'))+'</button>'+
             (C.paircode ? '<div class="paircode" id="pcCode">'+esc(C.paircode)+'</div><p style="font-size:13.5px;color:var(--ink2);text-align:center">Digite esse código no celular do restaurante. Ele vale por alguns minutos.</p>' : '')
           )+
@@ -1077,13 +1079,13 @@ function renderQuiz(){
     root.innerHTML = '<div class="qz">'+top(i + 1)+'<div class="qstep"><h1>'+q.h+'</h1>'+(q.s ? '<p class="sub">'+q.s+'</p>' : '')+
       '<div class="qopts">'+q.o.map(function(o, j){ return '<button type="button" class="qopt" data-i="'+j+'"><span class="em">'+o[0]+'</span><span>'+o[1]+(o[2] ? '<small>'+o[2]+'</small>' : '')+'</span></button>'; }).join('')+'</div>'+
       (i ? '<button type="button" class="qback" id="qzBack">← Voltar</button>' : '')+'</div></div>';
-    root.querySelectorAll('.qopt').forEach(function(b){ b.addEventListener('click', function(){ var o = q.o[+b.getAttribute('data-i')]; L[q.k] = o[3] || o[1]; L.step = i + 1; rxSave(L); track('quiz_step', {passo:i + 1, campo:q.k}); renderQuiz(); window.scrollTo(0,0); }); });
+    root.querySelectorAll('.qopt').forEach(function(b){ b.addEventListener('click', function(){ if(b.classList.contains('picked')) return; b.classList.add('picked'); var o = q.o[+b.getAttribute('data-i')]; L[q.k] = o[3] || o[1]; L.step = i + 1; rxSave(L); track('quiz_step', {passo:i + 1, campo:q.k}); setTimeout(function(){ renderQuiz(); window.scrollTo(0,0); }, 180); }); });
     if($('qzBack')) $('qzBack').addEventListener('click', function(){ L.step = i - 1; rxSave(L); renderQuiz(); });
     return;
   }
   if(i === QZ.length){
     root.innerHTML = '<div class="qz">'+top(N)+'<div class="qstep"><h1>Quase lá. Para quem vai o Raio-X?</h1><p class="sub">Usamos só para te mostrar o resultado e, se você quiser, continuar a conversa.</p>'+
-      '<div class="card" style="gap:12px" id="qzForm"><div class="f"><label for="rxNome">Seu nome</label><input id="rxNome" autocomplete="name" value="'+esc(L.nome || '')+'"></div><div class="f"><label for="rxZap">WhatsApp</label><input id="rxZap" type="tel" inputmode="tel" autocomplete="tel" placeholder="(61) 90000-0000" value="'+esc(L.whatsapp || '')+'"></div><div class="f"><label for="restName">Restaurante</label><input id="restName" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(L.restaurante || lsGet(REST_KEY) || '')+'"></div></div>'+
+      '<div class="card" style="gap:12px" id="qzForm"><div class="f"><label for="rxNome">Seu nome</label><input id="rxNome" autocomplete="name" placeholder="Digite aqui o seu nome" value="'+esc(L.nome || '')+'" maxlength="80"></div><div class="f"><label for="rxZap">WhatsApp</label><input id="rxZap" type="tel" inputmode="tel" autocomplete="tel" placeholder="Digite aqui com DDD, ex.: (61) 99999-0000" value="'+esc(L.whatsapp || '')+'" maxlength="20"></div><div class="f"><label for="restName">Restaurante</label><input id="restName" autocomplete="organization" placeholder="Digite aqui o nome do restaurante" value="'+esc(L.restaurante || lsGet(REST_KEY) || '')+'" maxlength="80"></div></div>'+
       '<button type="button" class="btn" id="qzGo">Ver o meu Raio-X</button><button type="button" class="qback" id="qzBack">← Voltar</button></div></div>';
     maskPhoneInput($('rxZap'));
     $('qzBack').addEventListener('click', function(){ L.step = i - 1; rxSave(L); renderQuiz(); });
@@ -1126,7 +1128,7 @@ function renderImport(errMsg){
         return '<div class="imp-head"><span class="eyebrow">Último passo</span><h1>'+(wa ? 'Sua base de clientes já está no seu WhatsApp.' : ifood ? 'O iFood não entrega o telefone dos seus clientes.' : sis && sis !== 'Outro sistema' ? 'Seus clientes estão no '+esc(sis)+'.' : 'Descubra quantos clientes o seu restaurante perdeu.')+'</h1></div>'+
           '<div class="rx-sum"><span><b>'+esc(L.nome || '')+'</b> · '+esc(L.restaurante || '')+' · '+esc(L.whatsapp || '')+'</span><button type="button" class="linkbtn" id="rxEdit">Editar</button></div>'+
           '<div class="ghost-num"><div class="kpi"><small>Clientes na base</small><b>1.284</b></div><div class="kpi"><small>Pararam de pedir</small><b>437</b></div><div class="kpi cash"><small>Receita parada</small><b>R$ 19.665</b></div></div>'+
-          '<input id="rxNome" type="hidden" value="'+esc(L.nome || '')+'"><input id="rxZap" type="hidden" value="'+esc(L.whatsapp || '')+'"><input id="restName" type="hidden" value="'+esc(L.restaurante || '')+'">'+
+          '<input id="rxNome" type="hidden" value="'+esc(L.nome || '')+'" maxlength="80"><input id="rxZap" type="hidden" value="'+esc(L.whatsapp || '')+'" maxlength="20"><input id="restName" type="hidden" value="'+esc(L.restaurante || '')+'" maxlength="80">'+
           (waOn && (wa || ifood) ? '<div class="pathcard"><b>'+(ifood ? 'Mas o seu WhatsApp entrega.' : 'Conecte o WhatsApp do restaurante')+'</b><p>'+(ifood ? 'Conecte o WhatsApp do restaurante e o Raio-X mostra quem sumiu entre os clientes que falam com você por lá.' : 'É igual a usar o WhatsApp no computador. O Raio-X puxa sozinho todo mundo que já conversou com você. Leva 1 minuto.')+'</p><ol><li>Toque no botão abaixo</li><li>Leia o QR code ou digite o código no celular</li><li>Pronto: os números acima viram os seus</li></ol><button type="button" class="btn" id="rxWa">Conectar meu WhatsApp</button></div>'+
             '<p style="text-align:center;font-weight:700;color:var(--ink2);margin:-4px 0">'+(ifood ? 'ou envie a planilha do seu cardápio digital' : 'ou, se preferir, envie uma planilha')+'</p>'
           : '<div class="pathcard"><b>Exporte a planilha'+(sis && sis !== 'Outro sistema' ? ' do '+esc(sis) : ' do seu sistema')+' e envie aqui</b><p>'+rxExport(sis)+'</p><ol><li>Exporte a planilha (Excel ou CSV)</li><li>Arraste aqui embaixo</li><li>Pronto: os números acima viram os seus</li></ol></div>'+
@@ -1135,7 +1137,7 @@ function renderImport(errMsg){
     '<div class="imp-head"><span class="eyebrow">'+(hasOld ? 'Atualizar base' : 'Passo 1 de 2')+'</span><h1>Importe seus clientes e descubra quem sumiu.</h1>'+
     '<p class="lead">Envie a planilha de clientes ou de pedidos do seu restaurante. A Máquina separa quem está ativo e quem parou de pedir.</p></div>')+
     (errMsg ? '<div class="msg-err">'+errMsg+'</div>' : '')+
-    (RAIOX ? '' : '<div class="f" style="max-width:420px"><label for="restName">Nome do restaurante</label><input id="restName" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(S.base && S.base.restaurante || lsGet(REST_KEY) || '')+'"></div>')+
+    (RAIOX ? '' : '<div class="f" style="max-width:420px"><label for="restName">Nome do restaurante</label><input id="restName" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(S.base && S.base.restaurante || lsGet(REST_KEY) || '')+'" maxlength="80"></div>')+
     '<label class="drop" id="drop" for="fileIn">'+
       '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></span>'+
       '<b>Arraste sua planilha aqui</b><p>ou toque para escolher o arquivo · Excel (.xlsx) ou CSV</p>'+
@@ -1228,7 +1230,7 @@ function renderMap(errMsg){
     '<div><span class="pill-info">'+esc(P.file)+' · '+nf.format(P.rows.length)+' linhas</span></div></div>'+
     (errMsg ? '<div class="msg-err">'+errMsg+'</div>' : '')+
     (P.sample ? '<div class="msg-warn">Estes são dados de exemplo, com nomes e telefones fictícios. Use para conhecer a ferramenta e depois importe a sua planilha.</div>' : '')+
-    '<div class="card" style="gap:14px">'+(PH ? '' : '<div class="f"><label for="mapRest">Nome do restaurante</label><input id="mapRest" autocomplete="organization" value="'+esc(P.restaurante)+'" placeholder="Ex.: Burger da Vila"></div>')+
+    '<div class="card" style="gap:14px">'+(PH ? '' : '<div class="f"><label for="mapRest">Nome do restaurante</label><input id="mapRest" autocomplete="organization" value="'+esc(P.restaurante)+'" placeholder="Ex.: Burger da Vila" maxlength="80"></div>')+
     '<div class="map-grid">'+fields.map(sel).join('')+(PH || P.sample ? '' : '<div class="f"><label for="mapSis">De qual sistema veio a planilha? <span style="font-weight:500;color:var(--ink2)">(opcional)</span></label><select id="mapSis"><option value="">Escolha</option>'+['Cardápio Web','Anota AI','Saipos','Goomer','Consumer','Outro sistema','Planilha própria'].map(function(o){ return '<option'+(P.sistema===o?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>')+'</div></div>'+
     '<div><p style="font-weight:700;font-size:14px;margin-bottom:8px">Primeiras linhas da planilha'+(RAIOX ? ' <span style="font-weight:500;color:var(--ink2)">(os dados aparecem na assinatura)</span>' : '')+'</p><div class="pv-wrap"><table><thead><tr>'+P.headers.map(function(h){ return '<th>'+esc(h)+'</th>'; }).join('')+'</tr></thead><tbody>'+
       prev.map(function(r){ return '<tr>'+P.headers.map(function(_, i){ var v = r[i]; if(v instanceof Date) v = fmtDate(v.getTime()); return '<td>'+(RAIOX ? '<span class="blur">'+esc(v)+'</span>' : esc(v))+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div></div>'+
@@ -1351,7 +1353,7 @@ function renderDash(){
       '<div class="kpi"><small><i style="background:#D1493A"></i>60+ dias</small><b>'+nf.format(st.d60)+'</b><em>'+pct(st.d60)+' da base</em></div>'+
       '<div class="kpi cash"><small>Receita parada</small><b>'+brl0.format(st.pot)+'</b><em>se cada inativo pedir 1 vez</em></div>'+
     '</div>'+
-    (!st.temTicket ? '<div class="sim-banner"><span class="tick-in">Sua planilha não tem valores. Ticket médio usado no cálculo: <input id="tickPad" inputmode="decimal" value="'+String(B.ticketPadrao).replace('.',',')+'" aria-label="Ticket médio"> </span></div>' : '')+
+    (!st.temTicket ? '<div class="sim-banner"><span class="tick-in">Sua planilha não tem valores. Ticket médio usado no cálculo: <input id="tickPad" inputmode="decimal" value="'+String(B.ticketPadrao).replace('.',',')+'" aria-label="Ticket médio" maxlength="12"> </span></div>' : '')+
     '<div class="panel"><h3 style="font-size:20px">Funil de recompra</h3><div class="funnel">'+
       bar('Ativos (até 14 dias)','var(--accent)',st.ativo)+bar('15 a 29 dias','#E9B949',st.d15)+bar('30 a 59 dias','#E0823C',st.d30)+bar('60+ dias','#D1493A',st.d60)+
     '</div>'+
@@ -1360,7 +1362,7 @@ function renderDash(){
     '</div>'+
     '<div class="panel">'+
       '<div class="toolbar"><div class="filters" role="group" aria-label="Filtrar clientes">'+filters.map(function(o){ return '<button type="button" class="chip" data-f="'+o[0]+'" aria-pressed="'+(S.filter === o[0])+'">'+o[1]+'</button>'; }).join('')+'</div></div>'+
-      '<div class="toolbar"><input class="search" id="q" type="search" placeholder="Buscar por nome ou telefone" value="'+esc(S.q)+'" aria-label="Buscar cliente">'+
+      '<div class="toolbar"><input class="search" id="q" type="search" placeholder="Buscar por nome ou telefone" value="'+esc(S.q)+'" aria-label="Buscar cliente" maxlength="60">'+
         '<div class="tb-right"><label for="sortSel" style="font-size:13px;color:var(--ink2);font-weight:600">Ordenar</label><select class="sort" id="sortSel"><option value="dias">Mais tempo sem comprar</option><option value="ticket">Maior ticket</option>'+(st.temPedidos ? '<option value="pedidos">Mais pedidos</option>' : '')+'</select></div></div>'+
       '<div class="sel-bar"><span class="count" id="selCount"></span><div class="sel-actions"><button type="button" class="linkbtn" id="selAll">Selecionar todos</button><button type="button" class="linkbtn" id="selNone">Limpar</button><button type="button" class="linkbtn" id="copyTel">Copiar telefones</button><button type="button" class="linkbtn" id="exportCsv">Exportar lista</button><button type="button" class="btn sm" id="recSel">Recuperar clientes</button></div></div>'+
       '<div class="tbl-wrap"><table><thead><tr><th class="ck"><input type="checkbox" id="ckAll" aria-label="Selecionar todos os clientes da lista"></th><th>Cliente</th><th class="n">Último pedido</th>'+(st.temPedidos ? '<th class="n">Pedidos</th>' : '')+'<th class="n">Ticket</th><th>Status</th><th>Ação</th></tr></thead><tbody id="tb"></tbody></table></div>'+
@@ -1495,9 +1497,9 @@ function openCampaign(list){
       '<div class="m-main" id="mMain">'+
         '<div class="m-head"><div><h3 id="mTitle">Vamos trazer esses clientes de volta?</h3><p>'+(list.length > 1 ? nf.format(list.length)+' clientes selecionados' : esc(head.nome)+', '+daysOf(head)+' dias sem comprar')+(noTel ? ' · '+pl(noTel,'sem telefone válido','sem telefone válido') : '')+(pulados ? ' · '+pl(pulados,'pulado por ter sido contatado há menos de '+DIAS_ENTRE_CONTATOS+' dias','pulados por terem sido contatados há menos de '+DIAS_ENTRE_CONTATOS+' dias') : '')+'</p></div>'+
         '<button type="button" class="x" id="mX" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'+
-        '<div class="f"><label for="mMsg">Mensagem</label><textarea id="mMsg" rows="7">'+esc(camp.msg)+'</textarea><span class="vars">Use <code>{nome}</code>, <code>{cupom}</code>, <code>{beneficio}</code> e <code>{prazo}</code>. Eles são trocados para cada cliente.</span></div>'+
-        '<div class="frow"><div class="f"><label for="mCup">Cupom</label><input id="mCup" value="'+esc(camp.cupom)+'"></div><div class="f"><label for="mBen">Benefício</label><input id="mBen" value="'+esc(camp.beneficio)+'"></div></div>'+
-        '<div class="f"><label for="mPra">Prazo</label><input id="mPra" value="'+esc(camp.prazo)+'"></div>'+
+        '<div class="f"><label for="mMsg">Mensagem</label><textarea id="mMsg" rows="7" maxlength="1500">'+esc(camp.msg)+'</textarea><span class="vars">Use <code>{nome}</code>, <code>{cupom}</code>, <code>{beneficio}</code> e <code>{prazo}</code>. Eles são trocados para cada cliente.</span></div>'+
+        '<div class="frow"><div class="f"><label for="mCup">Cupom</label><input id="mCup" value="'+esc(camp.cupom)+'" maxlength="30"></div><div class="f"><label for="mBen">Benefício</label><input id="mBen" value="'+esc(camp.beneficio)+'" maxlength="60"></div></div>'+
+        '<div class="f"><label for="mPra">Prazo</label><input id="mPra" value="'+esc(camp.prazo)+'" maxlength="40"></div>'+
         (viaApi ? '<div class="msg-warn" style="font-size:13.5px">A Máquina envia <b>uma mensagem por vez</b>, pelo WhatsApp do restaurante, com intervalo de 30 s a 1 min. Hoje ainda cabem <b>'+nf.format(restam)+'</b> de '+nf.format(S.auth.limite)+'. <b>Deixe esta tela aberta</b> até terminar.</div>' : '')+
         (!viaApi && queue.length === 1 ? '<a class="btn" id="mSend" href="#" target="_blank" rel="noopener">'+mainBtn+'</a>' : '<button type="button" class="btn" id="mSend"'+(queue.length && restam > 0 ? '' : ' disabled')+'>'+mainBtn+'</button>')+
         (viaApi && queue.length ? '<button type="button" class="linkbtn" id="mManual" style="justify-self:center">Prefiro abrir no WhatsApp e enviar na mão</button>' : '')+

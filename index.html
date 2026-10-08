@@ -7,7 +7,7 @@
 <meta name="description" content="Descubra quantos clientes do seu restaurante sumiram e traga eles de volta pelo WhatsApp. Máquina de Recuperação de Clientes da Click por R$ 49,90/mês.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap"></noscript>
 <style>
 :root{
   color-scheme:light;
@@ -487,9 +487,9 @@ tr.sel td{background:var(--accent-soft)}
       <div class="offer-grid">
         <div class="card">
           <div class="calc-in">
-            <div class="f"><label for="cBase">Clientes que compraram nos últimos meses</label><input id="cBase" class="numin" inputmode="numeric" value="2.000"></div>
-            <div class="f"><label for="cPed">Pedidos que você recebe por mês</label><input id="cPed" class="numin" inputmode="numeric" value="1.500"></div>
-            <div class="f"><label for="cTick">Ticket médio</label><div class="money"><input id="cTick" class="numin" inputmode="decimal" value="45"></div></div>
+            <div class="f"><label for="cBase">Clientes que compraram nos últimos meses</label><input id="cBase" class="numin" inputmode="numeric" value="2.000" maxlength="9"></div>
+            <div class="f"><label for="cPed">Pedidos que você recebe por mês</label><input id="cPed" class="numin" inputmode="numeric" value="1.500" maxlength="9"></div>
+            <div class="f"><label for="cTick">Ticket médio</label><div class="money"><input id="cTick" class="numin" inputmode="decimal" value="45" maxlength="10"></div></div>
           </div>
           <button type="button" class="btn dark" id="cGo">Calcular oportunidade</button>
           <div class="calc-out" id="cOut" aria-live="polite"></div>
@@ -525,10 +525,10 @@ tr.sel td{background:var(--accent-soft)}
         <div>
           <button type="button" class="btn dark" id="fullOpen" style="width:100%">Conhecer a Click completa</button>
           <form class="full-form" id="fullForm" novalidate hidden>
-            <div class="f"><label for="fuNome">Seu nome</label><input id="fuNome" autocomplete="name"><span class="err"></span></div>
+            <div class="f"><label for="fuNome">Seu nome</label><input id="fuNome" autocomplete="name" maxlength="80"><span class="err"></span></div>
             <div class="frow">
-              <div class="f"><label for="fuZap">WhatsApp</label><input id="fuZap" type="tel" inputmode="tel" autocomplete="tel" placeholder="(61) 90000-0000"><span class="err"></span></div>
-              <div class="f"><label for="fuRest">Restaurante</label><input id="fuRest" autocomplete="organization"><span class="err"></span></div>
+              <div class="f"><label for="fuZap">WhatsApp</label><input id="fuZap" type="tel" inputmode="tel" autocomplete="tel" placeholder="(61) 90000-0000" maxlength="20"><span class="err"></span></div>
+              <div class="f"><label for="fuRest">Restaurante</label><input id="fuRest" autocomplete="organization" maxlength="80"><span class="err"></span></div>
             </div>
             <button type="submit" class="btn">Quero conhecer a Click completa</button>
             <p class="privacy">Um especialista da Click fala com você pelo WhatsApp.</p>
@@ -607,6 +607,8 @@ function sbInsert(table, row){
 }
 function saveLead(lead){
   var toInt = function(v){ v = parseInt(v, 10); return isNaN(v) ? null : v; };
+  var cut = function(v, n){ v = v == null ? '' : String(v).trim().slice(0, n); return v || null; };
+  lead.nome = cut(lead.nome, 80); lead.whatsapp = cut(lead.whatsapp, 30); lead.restaurante = cut(lead.restaurante, 80); lead.cidade = cut(lead.cidade, 80); lead.email = cut(lead.email, 120); lead.canal = cut(lead.canal, 40); lead.tamanho_base = cut(lead.tamanho_base, 20); lead.acompanha_inativos = cut(lead.acompanha_inativos, 40);
   sbInsert('leads', {
     tipo: lead.tipo || null, origem: lead.origem || null, nome: lead.nome || null, whatsapp: lead.whatsapp || null,
     restaurante: lead.restaurante || null, cidade: lead.cidade || null, email: lead.email || null,
@@ -786,7 +788,7 @@ var App = {
 
     if(s === 0){
       html = '<div class="step"><span class="kicker">1 de 4</span><h2>Vamos descobrir quantos clientes você pode recuperar.</h2>'+
-        '<div class="f"><label for="obRest">Nome do restaurante</label><input id="obRest" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(d.restaurante)+'"></div>'+
+        '<div class="f"><label for="obRest">Nome do restaurante</label><input id="obRest" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(d.restaurante)+'" maxlength="80"></div>'+
         nav('Continuar', d.restaurante.trim().length >= 2)+'</div>';
     } else if(s === 1){
       html = '<div class="step"><span class="kicker">2 de 4</span><h2>Como você vende hoje?</h2>'+opts('canal',['WhatsApp','iFood','Sistema próprio','Outro'],true)+nav('Continuar', !!d.canal)+'</div>';
@@ -796,11 +798,11 @@ var App = {
       html = '<div class="step"><span class="kicker">4 de 4</span><h2>Você acompanha quem deixou de comprar?</h2>'+opts('acompanha',['Nunca','Às vezes','Todos os meses','Já tenho um sistema'])+nav('Continuar', !!d.acompanha)+'</div>';
     } else {
       html = '<form class="step" id="leadF" novalidate><span class="kicker">Último passo</span><h2>Para onde enviamos sua análise?</h2><p class="sub">Leva 20 segundos.</p>'+
-        '<div class="f"><label for="ldNome">Seu nome</label><input id="ldNome" autocomplete="name" value="'+esc(d.nome)+'"><span class="err"></span></div>'+
-        '<div class="frow"><div class="f"><label for="ldZap">WhatsApp</label><input id="ldZap" type="tel" inputmode="tel" autocomplete="tel" placeholder="(61) 90000-0000" value="'+esc(d.whatsapp)+'"><span class="err"></span></div>'+
-        '<div class="f"><label for="ldCid">Cidade</label><input id="ldCid" autocomplete="address-level2" placeholder="Cidade / UF" value="'+esc(d.cidade)+'"><span class="err"></span></div></div>'+
-        '<div class="f"><label for="ldRest">Nome do restaurante</label><input id="ldRest" autocomplete="organization" value="'+esc(d.restaurante)+'"><span class="err"></span></div>'+
-        '<div class="f"><label for="ldMail">E-mail <span style="font-weight:500;color:var(--ink2)">(opcional)</span></label><input id="ldMail" type="email" autocomplete="email" value="'+esc(d.email)+'"><span class="err"></span></div>'+
+        '<div class="f"><label for="ldNome">Seu nome</label><input id="ldNome" autocomplete="name" value="'+esc(d.nome)+'" maxlength="80"><span class="err"></span></div>'+
+        '<div class="frow"><div class="f"><label for="ldZap">WhatsApp</label><input id="ldZap" type="tel" inputmode="tel" autocomplete="tel" placeholder="(61) 90000-0000" value="'+esc(d.whatsapp)+'" maxlength="20"><span class="err"></span></div>'+
+        '<div class="f"><label for="ldCid">Cidade</label><input id="ldCid" autocomplete="address-level2" placeholder="Cidade / UF" value="'+esc(d.cidade)+'" maxlength="80"><span class="err"></span></div></div>'+
+        '<div class="f"><label for="ldRest">Nome do restaurante</label><input id="ldRest" autocomplete="organization" value="'+esc(d.restaurante)+'" maxlength="80"><span class="err"></span></div>'+
+        '<div class="f"><label for="ldMail">E-mail <span style="font-weight:500;color:var(--ink2)">(opcional)</span></label><input id="ldMail" type="email" autocomplete="email" value="'+esc(d.email)+'" maxlength="120"><span class="err"></span></div>'+
         '<div class="step-nav"><button type="button" class="back" id="stBack">Voltar</button><button type="submit" class="btn">Ver minha oportunidade</button></div>'+
         '<p class="privacy">Seus dados são usados só para a Click falar com você sobre a análise, conforme a LGPD.</p></form>';
     }
@@ -986,9 +988,9 @@ var App = {
         '<div class="m-main" id="mMain">'+
           '<div class="m-head"><div><h3 id="mTitle">Vamos trazer esses clientes de volta?</h3><p>'+(list.length>1 ? list.length+' clientes selecionados' : esc(list[0].nome)+', '+list[0].dias+' dias sem comprar')+'</p></div>'+
           '<button type="button" class="x" id="mX" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'+
-          '<div class="f"><label for="mMsg">Mensagem</label><textarea id="mMsg" rows="7">'+esc(camp.msg)+'</textarea><span class="vars">Use <code>{nome}</code>, <code>{cupom}</code>, <code>{beneficio}</code> e <code>{prazo}</code>. Eles são trocados para cada cliente.</span></div>'+
-          '<div class="frow"><div class="f"><label for="mCup">Cupom</label><input id="mCup" value="'+esc(camp.cupom)+'"></div><div class="f"><label for="mBen">Benefício</label><input id="mBen" value="'+esc(camp.beneficio)+'"></div></div>'+
-          '<div class="f"><label for="mPra">Prazo</label><input id="mPra" value="'+esc(camp.prazo)+'"></div>'+
+          '<div class="f"><label for="mMsg">Mensagem</label><textarea id="mMsg" rows="7" maxlength="1500">'+esc(camp.msg)+'</textarea><span class="vars">Use <code>{nome}</code>, <code>{cupom}</code>, <code>{beneficio}</code> e <code>{prazo}</code>. Eles são trocados para cada cliente.</span></div>'+
+          '<div class="frow"><div class="f"><label for="mCup">Cupom</label><input id="mCup" value="'+esc(camp.cupom)+'" maxlength="30"></div><div class="f"><label for="mBen">Benefício</label><input id="mBen" value="'+esc(camp.beneficio)+'" maxlength="60"></div></div>'+
+          '<div class="f"><label for="mPra">Prazo</label><input id="mPra" value="'+esc(camp.prazo)+'" maxlength="40"></div>'+
           '<button type="button" class="btn" id="mSend">Enviar campanha</button>'+
         '</div>'+
         '<div class="m-side"><small>Prévia no WhatsApp</small><div class="wa-chat"><div class="wa-head"><i><svg viewBox="0 0 24 24" fill="#1F6E5B" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></i><div><b id="pvName"></b><span>cliente há '+list[0].dias+' dias sem pedir</span></div></div><div class="bubble" id="pvMsg"></div></div></div>'+
