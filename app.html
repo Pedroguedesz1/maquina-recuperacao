@@ -397,7 +397,8 @@ tr.sel td{background:var(--accent-soft)}
 
 /* ======= app real ======= */
 .app{padding-block:24px 64px}
-.imp{max-width:760px;margin-inline:auto;display:grid;gap:16px}
+.imp{max-width:760px;margin-inline:auto;display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.imp>*{min-width:0}
 .imp-head{display:grid;gap:10px}
 .imp-head h1{font-size:clamp(30px,4.6vw,44px)}
 .drop{position:relative;border:2px dashed var(--ink3);border-radius:22px;background:var(--surface);padding:clamp(24px,5vw,40px) 20px;display:grid;gap:12px;justify-items:center;text-align:center;transition:border-color .15s,background .15s}
@@ -425,7 +426,7 @@ tr.sel td{background:var(--accent-soft)}
 .msg-err{background:var(--bad-soft);color:var(--bad);border-radius:14px;padding:12px 14px;font-size:14.5px;font-weight:600}
 .msg-warn{background:var(--warn-soft);color:var(--warn);border-radius:14px;padding:12px 14px;font-size:14px}
 .map-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.pv-wrap{overflow-x:auto;border-radius:14px;box-shadow:inset 0 0 0 1px var(--line)}
+.pv-wrap{overflow-x:auto;max-width:100%;min-width:0;border-radius:14px;box-shadow:inset 0 0 0 1px var(--line)}
 .pv-wrap table{min-width:0;font-size:13px}
 .pv-wrap td,.pv-wrap th{white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .pill-info{display:inline-flex;gap:8px;align-items:center;font-size:13px;font-weight:700;background:var(--bg);padding:6px 12px;border-radius:999px}
