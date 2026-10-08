@@ -902,9 +902,10 @@ function waConnected(){ return apiOn() && S.wa && S.wa.status === 'connected'; }
 
 function renderLogin(errMsg){
   var root = $('root');
+  var pago = /[?&]pago=1/.test(location.search) || /asaas\.com/.test(document.referrer || '');
   root.innerHTML =
-  '<div class="login"><span class="eyebrow">Máquina de Recuperação</span><h1>Digite o seu código de acesso</h1>'+
-    '<p class="lead">Você recebeu esse código logo depois da assinatura, pelo WhatsApp ou e-mail.</p>'+
+  '<div class="login"><span class="eyebrow">Máquina de Recuperação</span><h1>'+(pago ? 'Pagamento confirmado! 🎉' : 'Digite o seu código de acesso')+'</h1>'+
+    (pago ? '<div class="msg-warn" style="text-align:left">Seu <b>código de acesso</b> chega no seu WhatsApp em alguns minutos. Se você fez o Raio-X neste mesmo aparelho, ele já entra sozinho. Assim que receber, digite aqui.</div>' : '<p class="lead">Você recebeu esse código logo depois da assinatura, pelo WhatsApp ou e-mail.</p>')+
     (errMsg ? '<div class="msg-err">'+errMsg+'</div>' : '')+
     '<div class="f"><input id="codeIn" maxlength="12" placeholder="AB12CD34" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Código de acesso"></div>'+
     '<button type="button" class="btn" id="codeGo">Entrar</button>'+
@@ -1108,6 +1109,7 @@ function renderQuiz(){
       L.nome = $('rxNome').value.trim(); L.whatsapp = $('rxZap').value; L.restaurante = $('restName').value.trim();
       if(L.nome.length < 2 || L.whatsapp.replace(/\D/g,'').length < 10 || L.restaurante.length < 2){ $('qzForm').classList.add('invalid'); toast('Preencha nome, WhatsApp e restaurante.'); return; }
       lsSet(REST_KEY, L.restaurante); L.step = i + 1; rxSave(L); track('lead_form', {origem:'quiz'}); renderQuiz(); window.scrollTo(0,0);
+      if(apiOn() && !lsGet(CODE_KEY)){ var zap = L.whatsapp.replace(/\D/g,''); if(zap.length === 10 || zap.length === 11) zap = '55' + zap; api('rx_iniciar', {nome:L.nome, whatsapp:zap, restaurante:L.restaurante}).then(function(j){ if(j.ok && j.codigo) lsSet(CODE_KEY, j.codigo); }); }
     });
     return;
   }
@@ -1125,7 +1127,7 @@ function rxWhatsApp(){
   lsSet(REST_KEY, rn);
   var zap = L.whatsapp.replace(/\D/g,''); if(zap.length === 10 || zap.length === 11) zap = '55' + zap;
   var btn = $('rxWa'); if(btn){ btn.disabled = true; btn.textContent = 'Preparando…'; }
-  api('rx_iniciar', {nome:L.nome, whatsapp:zap, restaurante:rn}).then(function(j){
+  (lsGet(CODE_KEY) ? Promise.resolve({ok:true, codigo:lsGet(CODE_KEY)}) : api('rx_iniciar', {nome:L.nome, whatsapp:zap, restaurante:rn})).then(function(j){
     if(!j.ok){ renderImport(esc(j.erro || 'Não foi possível iniciar. Tente de novo.')); return; }
     lsSet(CODE_KEY, j.codigo);
     track('source_pick', {origem:'whatsapp_raiox'});
