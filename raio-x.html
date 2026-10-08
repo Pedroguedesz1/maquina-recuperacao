@@ -766,7 +766,7 @@ function bestDateCol(headers, rows, avoid){
   return best;
 }
 function aggregate(rows, map){
-  var byKey = {}, skipped = 0, noName = 0, perRow = 0, dates = [];
+  var byKey = {}, skipped = 0, noName = 0, perRow = 0, dates = [], semPedido = 0, comPedidoSemData = 0, semTelRows = 0;
   rows.forEach(function(r){
     var nome = normName(map.nome != null ? r[map.nome] : '');
     if(map.sobrenome != null && nome){ var sn = normName(r[map.sobrenome]); if(sn && nome.toLowerCase().indexOf(sn.toLowerCase()) < 0) nome = nome + ' ' + sn; }
@@ -776,7 +776,7 @@ function aggregate(rows, map){
     if(dt == null && map.dias != null){ var dv = r[map.dias], dn = typeof dv === 'number' ? dv : parseFloat(String(dv).replace(',', '.')); if(isFinite(dn) && dn >= 0 && dn <= 5000) dt = today0() - Math.round(dn) * DAY; }
     if(!nome && !tel){ noName++; return; }
     if(/^(total|totais|subtotal|soma)\b/i.test(nome) && !tel){ skipped++; return; }
-    if(dt == null){ skipped++; return; }
+    if(dt == null){ skipped++; var qv = map.qtd != null ? parseMoney(r[map.qtd]) : null; if(qv != null && qv > 0) comPedidoSemData++; else if(qv === 0 || (map.qtd != null && (r[map.qtd] === '' || r[map.qtd] == null))) semPedido++; return; }
     dates.push(dt);
     var key = tel && tel.length >= 10 ? 't' + tel : 'n' + keyName(nome);
     var val = map.valor != null ? parseMoney(r[map.valor]) : null;
@@ -797,7 +797,7 @@ function aggregate(rows, map){
     return {id:'c'+i, nome:c.nome, tel:c.tel, ultimo:c.ultimo, pedidos: c.qtdCol ? Math.round(c.qtd) : (map.qtd != null ? null : c.linhas), ticket: c.nVal ? Math.round(c.soma / c.nVal * 100) / 100 : null, contatado:null};
   });
   if(map.qtd == null && perRow === 0) list.forEach(function(c){ c.pedidos = null; });
-  return {clients:list, skipped:skipped, noName:noName, rowsPerOrder: perRow > 0, pedidosMes: perRow > 0 ? ordersPerMonth(dates) : null};
+  return {clients:list, skipped:skipped, noName:noName, rowsPerOrder: perRow > 0, pedidosMes: perRow > 0 ? ordersPerMonth(dates) : null, semPedido:semPedido, comPedidoSemData:comPedidoSemData};
 }
 
 /* ---------- volume de pedidos (para priorizar leads da Click completa) ----------
@@ -1301,7 +1301,7 @@ function runImport(){
   }
   var res = aggregate(P.rows, P.map);
   if(!res.clients.length) return renderMap('Nenhuma linha teve uma data válida na coluna escolhida. Confira se escolheu a coluna certa. As datas precisam estar como 25/09/2026 ou 2026-09-25.');
-  S.base = {restaurante: (P.restaurante || '').trim() || 'Meu restaurante', sistema: P.sistema || null, arquivo:P.file, importadoEm:Date.now(), sample:!!P.sample, clients:res.clients, ticketPadrao:45, porPedido:res.rowsPerOrder, pedidosMes:res.pedidosMes, ignoradas:res.skipped + res.noName};
+  S.base = {restaurante: (P.restaurante || '').trim() || 'Meu restaurante', sistema: P.sistema || null, arquivo:P.file, importadoEm:Date.now(), sample:!!P.sample, clients:res.clients, ticketPadrao:45, porPedido:res.rowsPerOrder, pedidosMes:res.pedidosMes, ignoradas:res.skipped + res.noName, semPedido:res.semPedido, comPedidoSemData:res.comPedidoSemData};
   var old = load();
   if(old && old.clients && !P.sample){
     var sent = {}; old.clients.forEach(function(c){ if(c.contatado) sent[(c.tel || '') + '|' + keyName(c.nome)] = c.contatado; });
@@ -1380,7 +1380,7 @@ function renderDash(){
       '<span class="cta-row">'+(waConnected() ? '<button type="button" class="btn ghost sm" id="waSync">Atualizar do WhatsApp</button>' : '<button type="button" class="btn sm" id="waConn">Conectar WhatsApp</button>')+(RAIOX ? '' : '<button type="button" class="linkbtn" id="rulesBtn">Regras para proteger seu número</button>')+'</span></div>' : '')+
     (!RAIOX && S.auth && S.auth.plano === 'raiox' ? '<div class="msg-warn">Seu acesso está sendo liberado pela Click. Você já pode ver seus clientes; o envio de mensagens é liberado em instantes após a confirmação do pagamento.</div>' : '')+
     '<div class="dash-head"><div><span class="eyebrow">'+esc(B.restaurante)+'</span><h2>'+(st.inativos ? '<span class="hl">'+pl(st.inativos,'cliente','clientes')+'</span> '+(st.inativos===1?'parou':'pararam')+' de pedir.' : 'Nenhum cliente parado há mais de 15 dias.')+'</h2>'+
-      '<p>'+nf.format(st.total)+' clientes na base'+(B.ignoradas ? ' · '+pl(B.ignoradas,'linha ignorada','linhas ignoradas')+' por falta de nome ou data' : '')+(B.origem === 'whatsapp' ? ' · a data do último pedido é a da <b>última conversa</b> no WhatsApp' : '')+'.</p></div></div>'+
+      '<p>'+nf.format(st.total)+' clientes na base'+(B.ignoradas ? ' · '+(B.semPedido ? pl(B.semPedido,'cadastro sem nenhum pedido','cadastros sem nenhum pedido')+(B.ignoradas - B.semPedido - (B.comPedidoSemData||0) > 0 ? ' e '+pl(B.ignoradas - B.semPedido - (B.comPedidoSemData||0),'linha sem nome ou data','linhas sem nome ou data') : '') : pl(B.ignoradas,'linha ignorada','linhas ignoradas')+' por falta de nome ou data')+(B.comPedidoSemData ? ' · <b style="color:var(--bad)">'+pl(B.comPedidoSemData,'cliente tem pedidos mas veio sem data do último pedido','clientes têm pedidos mas vieram sem data do último pedido')+'</b> (confira a exportação do sistema)' : '') : '')+(B.origem === 'whatsapp' ? ' · a data do último pedido é a da <b>última conversa</b> no WhatsApp' : '')+'.</p></div></div>'+
     (RAIOX ? '<div class="rx-lock"><span class="ic"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"9\" rx=\"2\"/><path d=\"M8 11V8a4 4 0 0 1 8 0v3\"/></svg></span><div><b>Este é o seu Raio-X gratuito.</b><span>Para ver os nomes e telefones de quem sumiu e mandar a mensagem de volta pelo WhatsApp, libere a Máquina completa.</span><span class="price">R$ 49,90/mês · cancele quando quiser</span></div><a class="btn" href="#" data-unlock="banner">Liberar nomes e mensagens</a></div>' : '')+
     '<div class="kpis">'+
       '<div class="kpi"><small>Clientes na base</small><b>'+nf.format(st.total)+'</b><em>'+(B.porPedido ? 'juntados a partir dos pedidos' : 'importados')+'</em></div>'+
