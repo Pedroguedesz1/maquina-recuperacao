@@ -109,6 +109,17 @@ button{font-family:inherit}
 .fomo h2{font-size:clamp(32px,4.6vw,54px)}
 .fomo .lead{color:var(--inv-ink2)}
 .already{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:clamp(28px,4vw,40px)}
+.fontes{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fonte{background:var(--surface);border-radius:22px;padding:24px;display:grid;gap:10px;align-content:start;box-shadow:inset 0 0 0 1.5px var(--line);position:relative}
+.fonte.main{background:var(--inv);color:var(--inv-ink);box-shadow:none}
+.fonte.main p,.fonte.main li{color:var(--inv-ink2)}
+.fonte .ic{width:48px;height:48px;border-radius:14px;background:var(--accent);color:#08170C;display:grid;place-items:center}
+.fonte .ic svg{width:24px;height:24px}
+.fonte h3{font-size:21px;letter-spacing:-.01em}
+.fonte p{font-size:15px;color:var(--ink2)}
+.fonte ol{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14.5px;color:var(--ink2)}
+.fonte .badge{position:absolute;top:18px;right:18px;font:800 11px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#08170C;padding:7px 10px;border-radius:999px}
+@media (max-width:720px){.fontes{grid-template-columns:1fr}}
 .al{background:var(--inv2);border-radius:18px;padding:18px;display:grid;gap:8px;box-shadow:inset 0 0 0 1px var(--inv-line)}
 .al .ic{width:38px;height:38px;border-radius:11px;background:var(--accent);color:#08170C;display:grid;place-items:center}
 .al .ic svg{width:19px;height:19px}
@@ -829,18 +840,18 @@ var S = {
 
 /* ---------- código de acesso e ponte com o WhatsApp (função "wa" no Supabase) ---------- */
 var CODE_KEY = 'click_maquina_codigo_v1';
-function apiOn(){ return !RAIOX && !!CONFIG.apiUrl; }
+function apiOn(){ return !!CONFIG.apiUrl; }
 function api(acao, data){
   var body = Object.assign({codigo: lsGet(CODE_KEY) || '', acao: acao}, data || {});
   return fetch(CONFIG.apiUrl, {method:'POST', headers:{'Content-Type':'application/json', 'apikey':CONFIG.supabaseKey}, body:JSON.stringify(body)})
     .then(function(r){ return r.json().catch(function(){ return {ok:false, erro:'O servidor respondeu de um jeito inesperado. Tente de novo.'}; }); })
     .catch(function(){ return {ok:false, erro:'Sem conexão com o servidor. Confira sua internet e tente de novo.'}; })
-    .then(function(j){ if(j && j.codigo_invalido){ lsSet(CODE_KEY, ''); S.auth = null; } if(j && j.wa) S.wa = j.wa; if(j && j.enviados_hoje != null && S.auth){ S.auth.enviadosHoje = j.enviados_hoje; if(j.limite) S.auth.limite = j.limite; } return j; });
+    .then(function(j){ if(j && j.codigo_invalido){ lsSet(CODE_KEY, ''); S.auth = null; } if(j && j.expirado){ S.wa = {status:'disconnected', numero:null}; } if(j && j.wa) S.wa = j.wa; if(j && j.enviados_hoje != null && S.auth){ S.auth.enviadosHoje = j.enviados_hoje; if(j.limite) S.auth.limite = j.limite; } return j; });
 }
 function entrar(){
   return api('entrar').then(function(j){
     if(!j.ok) return j;
-    S.auth = {nome:j.nome, limite:j.limite || 30, enviadosHoje:j.enviados_hoje || 0};
+    S.auth = {nome:j.nome, limite:j.limite || 30, enviadosHoje:j.enviados_hoje || 0, plano:j.plano || 'pago'};
     if(j.nome) lsSet(REST_KEY, j.nome);
     return j;
   });
@@ -908,7 +919,7 @@ function renderConnect(){
     (connected ?
       '<div class="box" style="text-align:center;justify-items:center"><div class="done-box"><div class="ok"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></div>'+
         '<h3>WhatsApp conectado'+(S.wa.numero ? ': '+esc(fmtPhone(S.wa.numero)) : '')+'.</h3><p style="color:var(--ink2)">Agora a Máquina vai buscar as conversas e separar quem parou de pedir.</p>'+
-        '<button type="button" class="btn" id="waImport">Importar meus clientes do WhatsApp</button>'+
+        '<button type="button" class="btn" id="waImport">'+(RAIOX ? 'Ver o meu Raio-X' : 'Importar meus clientes do WhatsApp')+'</button>'+
         '<button type="button" class="linkbtn" id="waOut">Desconectar este número</button></div></div>'
     :
       '<div class="conn">'+
@@ -976,7 +987,9 @@ function renderConnect(){
 
 function importWA(){
   var btn = $('waImport'); if(btn){ btn.disabled = true; btn.textContent = 'Buscando conversas…'; }
-  api('conversas').then(function(j){
+  var debug = /[?&]debug=1/.test(location.search);
+  api('conversas', debug ? {debug:true} : {}).then(function(j){
+    if(debug){ var ta = document.createElement('textarea'); ta.style.cssText = 'position:fixed;inset:20px;z-index:9999;font:12px/1.4 monospace;padding:12px'; ta.value = 'COPIE TUDO E COLE NA CONVERSA:\n\n' + JSON.stringify({ok:j.ok, erro:j.erro, total:j.total, amostra:j.amostra, primeiras:(j.conversas||[]).slice(0,3)}, null, 2); document.body.appendChild(ta); ta.focus(); ta.select(); }
     if(!j.ok){ toast(j.erro || 'Não foi possível buscar as conversas.'); if(btn){ btn.disabled = false; btn.textContent = 'Importar meus clientes do WhatsApp'; } return; }
     var old = S.base && S.base.clients && !S.base.sample ? S.base.clients : [];
     var byTel = {};
@@ -992,7 +1005,8 @@ function importWA(){
     if(!list.length){ toast('Nenhuma conversa individual encontrada nesse WhatsApp.'); if(btn){ btn.disabled = false; btn.textContent = 'Importar meus clientes do WhatsApp'; } return; }
     S.base = {restaurante: (S.auth && S.auth.nome) || lsGet(REST_KEY) || 'Meu restaurante', sistema:'WhatsApp', arquivo:'Conversas do WhatsApp', importadoEm:Date.now(), sample:false, clients:list, ticketPadrao:(S.base && S.base.ticketPadrao) || 45, porPedido:false, origem:'whatsapp', pedidosMes:null, ignoradas:0};
     save(); S.conn = null; S.view = null; S.selected = {}; S.filter = 'inativos'; S.limit = 50; S.q = '';
-    track('import_done', {origem:'whatsapp', clientes:list.length}); reportUsage('importou');
+    track('import_done', {origem:'whatsapp', clientes:list.length}); reportUsage(RAIOX ? 'raio_x' : 'importou');
+    if(RAIOX){ var st0 = stats(), L0 = rxLead(); sbPost('leads', Object.assign({tipo:'raio_x', origem:'raio_x_whatsapp', nome:L0.nome||null, whatsapp:L0.whatsapp||null, restaurante:S.base.restaurante, canal:'WhatsApp', tamanho_base:String(st0.total), estimativa_inativos:st0.inativos, estimativa_potencial:Math.round(st0.pot), utm:rxUtm(), pedidos_faixa_dono:L0.pedidos||null}, volumeLead(null, L0.pedidos))); track('lead_captured', {origem:'raio_x_whatsapp'}); }
     render(); window.scrollTo(0,0);
     toast(nf.format(j.total || 0) + ' conversas importadas do WhatsApp.');
   });
@@ -1008,12 +1022,27 @@ function daysOf(c){ return Math.max(0, Math.round((today0() - c.ultimo) / DAY));
 
 /* ================= TELAS ================= */
 function render(){
-  if(apiOn() && !lsGet(CODE_KEY)) return renderLogin();
+  if(apiOn() && !RAIOX && !lsGet(CODE_KEY)) return renderLogin();
   if(S.view === 'map') return renderMap();
   if(S.view === 'connect') return renderConnect();
   if(S.view === 'sheet') return renderImport();
   if(S.base && S.base.clients && S.base.clients.length) return renderDash();
-  return apiOn() ? renderStart() : renderImport();
+  return (apiOn() && !RAIOX) ? renderStart() : renderImport();
+}
+
+/* Raio-X pelo WhatsApp: cria o acesso provisório do lead e vai para a tela de conexão */
+function rxWhatsApp(){
+  var L = rxLead(), rn = ($('restName') && $('restName').value.trim()) || '';
+  if(String(L.nome||'').trim().length < 2 || String(L.whatsapp||'').replace(/\D/g,'').length < 10 || rn.length < 2 || !L.pedidos){ renderImport('Preencha <b>seu nome</b>, <b>WhatsApp</b>, o <b>nome do restaurante</b> e os <b>pedidos por mês</b> para conectar.'); return; }
+  lsSet(REST_KEY, rn);
+  var zap = L.whatsapp.replace(/\D/g,''); if(zap.length === 10 || zap.length === 11) zap = '55' + zap;
+  var btn = $('rxWa'); if(btn){ btn.disabled = true; btn.textContent = 'Preparando…'; }
+  api('rx_iniciar', {nome:L.nome, whatsapp:zap, restaurante:rn}).then(function(j){
+    if(!j.ok){ renderImport(esc(j.erro || 'Não foi possível iniciar. Tente de novo.')); return; }
+    lsSet(CODE_KEY, j.codigo);
+    track('source_pick', {origem:'whatsapp_raiox'});
+    S.conn = null; S.view = 'connect'; render(); window.scrollTo(0,0);
+  });
 }
 
 function renderImportScreen(errMsg){ return renderImport(errMsg); }
@@ -1021,18 +1050,20 @@ function renderImport(errMsg){
   var root = $('root'), hasOld = S.base && S.base.clients && S.base.clients.length;
   root.innerHTML =
   '<div class="imp">'+
-    (RAIOX ? '<div class="imp-head"><span class="eyebrow">Raio-X grátis</span><h1>Descubra quantos clientes o seu restaurante perdeu.</h1><p class="lead">Envie a planilha de clientes ou de pedidos do seu sistema. Em 2 minutos você vê quantos clientes pararam de pedir e quanto dinheiro isso representa. Grátis.</p></div>' :
+    (RAIOX ? '<div class="imp-head"><span class="eyebrow">Raio-X grátis</span><h1>Descubra quantos clientes o seu restaurante perdeu.</h1><p class="lead">'+(apiOn() ? 'Conecte o WhatsApp do restaurante ou envie a planilha do seu sistema. ' : 'Envie a planilha de clientes ou de pedidos do seu sistema. ')+'Em 2 minutos você vê quantos clientes pararam de pedir e quanto dinheiro isso representa. Grátis.</p></div>' :
     '<div class="imp-head"><span class="eyebrow">'+(hasOld ? 'Atualizar base' : 'Passo 1 de 2')+'</span><h1>Importe seus clientes e descubra quem sumiu.</h1>'+
     '<p class="lead">Envie a planilha de clientes ou de pedidos do seu restaurante. A Máquina separa quem está ativo e quem parou de pedir.</p></div>')+
     (errMsg ? '<div class="msg-err">'+errMsg+'</div>' : '')+
     (RAIOX ? '<div class="rx-lead"><div class="f"><label for="rxNome">Seu nome</label><input id="rxNome" autocomplete="name" value="'+esc(rxLead().nome||'')+'"></div><div class="f"><label for="rxZap">WhatsApp</label><input id="rxZap" type="tel" inputmode="tel" autocomplete="tel" placeholder="(61) 90000-0000" value="'+esc(rxLead().whatsapp||'')+'"></div><div class="f"><label for="restName">Restaurante</label><input id="restName" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(S.base && S.base.restaurante || lsGet(REST_KEY) || '')+'"></div><div class="f"><label for="rxPed">Pedidos por mês, mais ou menos</label><select id="rxPed"><option value="">Escolha</option>'+PED_FAIXAS.map(function(o){ return '<option value="'+o.v+'"'+(rxLead().pedidos === o.v ? ' selected' : '')+'>'+o.label+'</option>'; }).join('')+'</select></div></div>' :
     '<div class="f" style="max-width:420px"><label for="restName">Nome do restaurante</label><input id="restName" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(S.base && S.base.restaurante || lsGet(REST_KEY) || '')+'"></div>')+
+    (RAIOX && apiOn() ? '<button type="button" class="opt-card main" id="rxWa" style="width:100%"><span class="badge">Mais fácil</span><span class="ic"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 12 12 0 0 0 4.6 4c1.7.7 2.3.8 3.2.7a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg></span><b>Conectar o WhatsApp do restaurante</b><p>Anota pedido pelo WhatsApp? O Raio-X puxa sozinho todo mundo que já conversou com você. Sem planilha.</p></button>'+
+     '<p style="text-align:center;font-weight:700;color:var(--ink2);margin:-4px 0">ou</p>' : '')+
     '<label class="drop" id="drop" for="fileIn">'+
       '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></span>'+
       '<b>Arraste sua planilha aqui</b><p>ou toque para escolher o arquivo · Excel (.xlsx) ou CSV</p>'+
       '<span class="btn sm">Escolher arquivo</span>'+
     '</label>'+
-    '<div class="imp-actions"><a class="btn ghost sm" href="'+esc(CONFIG.modeloUrl)+'" download id="dlModelo">Baixar planilha modelo</a>'+(RAIOX ? '' : '<button type="button" class="btn ghost sm" id="useSample">Testar com dados de exemplo</button>')+(hasOld ? '<button type="button" class="btn ghost sm" id="cancelImp">Voltar ao painel</button>' : (apiOn() ? '<button type="button" class="btn ghost sm" id="cancelImp">Voltar</button>' : ''))+'</div>'+
+    '<div class="imp-actions"><a class="btn ghost sm" href="'+esc(CONFIG.modeloUrl)+'" download id="dlModelo">Baixar planilha modelo</a>'+(RAIOX ? '' : '<button type="button" class="btn ghost sm" id="useSample">Testar com dados de exemplo</button>')+(hasOld ? '<button type="button" class="btn ghost sm" id="cancelImp">Voltar ao painel</button>' : (apiOn() && !RAIOX ? '<button type="button" class="btn ghost sm" id="cancelImp">Voltar</button>' : ''))+'</div>'+
     '<div class="lock"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>A planilha é lida aqui no seu navegador. Os nomes e telefones dos seus clientes ficam salvos só neste aparelho. A Click recebe apenas números gerais, como quantos clientes você tem e quantos pararam de pedir.</span></div>'+
     '<details class="help" open><summary>O que a planilha precisa ter?</summary><div class="help-body">'+
       '<p>Uma linha por cliente <b>ou</b> uma linha por pedido. Se vier uma linha por pedido, a Máquina junta os pedidos de cada cliente sozinha.</p>'+
@@ -1058,6 +1089,7 @@ function renderImport(errMsg){
   ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
   drop.addEventListener('drop', function(e){ var f = e.dataTransfer && e.dataTransfer.files[0]; if(f) readFile(f); });
   if(RAIOX){ ['rxNome','rxZap'].forEach(function(id){ $(id).addEventListener('input', function(){ var l = rxLead(); l[id === 'rxNome' ? 'nome' : 'whatsapp'] = this.value; lsSet(LEAD_KEY, JSON.stringify(l)); }); }); maskPhoneInput($('rxZap')); $('rxPed').addEventListener('change', function(){ var l = rxLead(); l.pedidos = this.value; lsSet(LEAD_KEY, JSON.stringify(l)); }); }
+  if($('rxWa')) $('rxWa').addEventListener('click', rxWhatsApp);
   if($('useSample')) $('useSample').addEventListener('click', function(){ track('import_sample'); startMap(sampleRows(), 'dados-de-exemplo.csv', true); });
   $('dlModelo').addEventListener('click', function(){ track('template_download'); });
   if($('cancelImp')) $('cancelImp').addEventListener('click', function(){ S.view = null; render(); window.scrollTo(0,0); });
@@ -1228,7 +1260,8 @@ function renderDash(){
     (B.sample ? '<div class="msg-warn">Você está vendo <b>dados de exemplo</b>. Toque em <b>Atualizar base</b> para importar a planilha do seu restaurante.</div>' : '')+
     (apiOn() ? '<div class="wa-strip"><span><i class="dot'+(waConnected() ? ' on' : '')+'"></i>'+(waConnected() ? 'WhatsApp conectado'+(S.wa.numero ? ' · '+esc(fmtPhone(S.wa.numero)) : '') : 'WhatsApp não conectado')+'</span>'+
       (waConnected() && S.auth ? '<span>Envios hoje: <b>'+nf.format(S.auth.enviadosHoje)+'</b> de '+nf.format(S.auth.limite)+'<span class="meter"><i style="width:'+Math.min(100, S.auth.enviadosHoje / S.auth.limite * 100)+'%"></i></span></span>' : '')+
-      '<span class="cta-row">'+(waConnected() ? '<button type="button" class="btn ghost sm" id="waSync">Atualizar do WhatsApp</button>' : '<button type="button" class="btn sm" id="waConn">Conectar WhatsApp</button>')+'<button type="button" class="linkbtn" id="rulesBtn">Regras para proteger seu número</button></span></div>' : '')+
+      '<span class="cta-row">'+(waConnected() ? '<button type="button" class="btn ghost sm" id="waSync">Atualizar do WhatsApp</button>' : '<button type="button" class="btn sm" id="waConn">Conectar WhatsApp</button>')+(RAIOX ? '' : '<button type="button" class="linkbtn" id="rulesBtn">Regras para proteger seu número</button>')+'</span></div>' : '')+
+    (!RAIOX && S.auth && S.auth.plano === 'raiox' ? '<div class="msg-warn">Seu acesso está sendo liberado pela Click. Você já pode ver seus clientes; o envio de mensagens é liberado em instantes após a confirmação do pagamento.</div>' : '')+
     '<div class="dash-head"><div><span class="eyebrow">'+esc(B.restaurante)+'</span><h2>'+(st.inativos ? '<span class="hl">'+pl(st.inativos,'cliente','clientes')+'</span> '+(st.inativos===1?'parou':'pararam')+' de pedir.' : 'Nenhum cliente parado há mais de 15 dias.')+'</h2>'+
       '<p>'+nf.format(st.total)+' clientes na base'+(B.ignoradas ? ' · '+pl(B.ignoradas,'linha ignorada','linhas ignoradas')+' por falta de nome ou data' : '')+(B.origem === 'whatsapp' ? ' · a data do último pedido é a da <b>última conversa</b> no WhatsApp' : '')+'.</p></div></div>'+
     (RAIOX ? '<div class="rx-lock"><span class="ic"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"9\" rx=\"2\"/><path d=\"M8 11V8a4 4 0 0 1 8 0v3\"/></svg></span><div><b>Este é o seu Raio-X gratuito.</b><span>Para ver os nomes e telefones de quem sumiu e mandar a mensagem de volta pelo WhatsApp, libere a Máquina completa.</span><span class="price">R$ 49,90/mês · cancele quando quiser</span></div><a class="btn" href="#" data-unlock="banner">Liberar nomes e mensagens</a></div>' : '')+
@@ -1485,10 +1518,13 @@ function openCampaign(list){
 }
 
 track('app_open', {tem_base: !!(S.base && S.base.clients && S.base.clients.length)});
-if(apiOn() && lsGet(CODE_KEY)){
+if(apiOn() && lsGet(CODE_KEY) && !RAIOX){
   // já tem código salvo: confere no servidor e descobre se o WhatsApp está conectado
   render();
   entrar().then(function(j){ if(!j.ok){ if(j.codigo_invalido) renderLogin(j.erro); else toast(j.erro || 'Não foi possível falar com o servidor.'); return; } render(); });
+} else if(apiOn() && lsGet(CODE_KEY) && RAIOX){
+  render();
+  api('status').then(function(){ if(S.view !== 'map' && S.view !== 'connect') render(); });
 } else render();
 })();
 </script>
