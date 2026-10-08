@@ -605,6 +605,7 @@ function parseDate(v){
   if(typeof v === 'number'){ if(v > 20000 && v < 80000) return okDate(Math.round((v - 25569) * DAY) + new Date().getTimezoneOffset()*60000); return null; }
   var s = String(v).trim(), m;
   if(/^\d{5}(\.\d+)?$/.test(s)) return parseDate(parseFloat(s));
+  if(/^-?\d{1,4}([.,]\d+)?$/.test(s)) return null; // número solto (ex.: dias) não é data
   if((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return okDate(new Date(+m[1], +m[2]-1, +m[3]).getTime());
   if((m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/))){
     var y = +m[3]; if(y < 100) y += 2000;
@@ -613,13 +614,17 @@ function parseDate(v){
     if(mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
     return okDate(new Date(y, mm-1, dd).getTime());
   }
+  if(!/[\/\-.T:]|[a-z]/i.test(s)) return null;
   var t = Date.parse(s); return isNaN(t) ? null : okDate(t);
 }
 function normPhone(v){
   var d = String(v==null?'':v).replace(/\D/g,'');
   if(!d) return '';
+  if(/^0?800/.test(d) || /^0?300/.test(d) || /^0?400[04]/.test(d)) return ''; // 0800 do iFood e similares não são o cliente
   d = d.replace(/^0+/, '');
   if(d.length === 10 || d.length === 11) d = '55' + d;
+  // celular antigo sem o nono dígito (ex.: 55 61 8123 4567): após o DDD, celular começa com 6 a 9
+  if(/^55\d{10}$/.test(d) && /^[6-9]/.test(d.slice(4))) d = d.slice(0,4) + '9' + d.slice(4);
   return d;
 }
 function waOk(d){ return /^55[1-9][1-9]\d{8,9}$/.test(d) || (!/^55/.test(d) && d.length >= 11 && d.length <= 15); }
@@ -720,14 +725,16 @@ function parseXLSX(buf){
 
 /* ---------- identificação das colunas ---------- */
 var FIELDS = [
-  {k:'nome', label:'Nome do cliente', req:true, kw:['nome','cliente','name','customer']},
-  {k:'tel', label:'Telefone / WhatsApp', req:false, kw:['whats','telefone','celular','fone','phone','tel','contato']},
-  {k:'data', label:'Data do pedido ou do último pedido', req:true, kw:['ultimo pedido','último pedido','ultima compra','última compra','data','date','pedido em','criado']},
-  {k:'valor', label:'Valor do pedido ou ticket médio', req:false, kw:['ticket','valor','total','preco','preço','amount','gasto']},
-  {k:'qtd', label:'Quantidade de pedidos', req:false, kw:['quantidade','qtd','qtde','num pedidos','nº pedidos','n pedidos','pedidos','compras','frequencia','frequência']}
+  {k:'nome', label:'Nome do cliente', req:true, kw:['nome do cliente','nome completo','nome','cliente','primeiro nome','first name','name','customer'], not:/r\$|taxa|total|valor|solicitou|informou|\bid\b|codigo|sobrenome|last name|loja|produto|item|status|pagamento|cpf|email|e mail|endereco|bairro|cidade|data/},
+  {k:'sobrenome', label:'Sobrenome (se vier separado)', req:false, kw:['sobrenome','last name','ultimo nome'], not:/nome do cliente|primeiro/},
+  {k:'tel', label:'Telefone / WhatsApp', req:false, kw:['numero telefone','telefone','celular','fone','phone','telephone','whatsapp','whats','tel','contato'], not:/loja|empresa|restaurante|fixo|possui|verificad/},
+  {k:'data', label:'Data do pedido ou do último pedido', req:true, kw:['data do ultimo pedido','ultimo pedido','ultima compra','ultima visita','ultima venda','last order','data e hora do pedido','data do pedido','data da compra','data da venda','data hora','data','date','pedido em','criado em','criado','realizado'], not:/nasc|aniver|cadastr|criacao da conta|birth|entrega prevista|previs|cancel|agend|repasse|vencimento|cliente desde|primeiro pedido|primeira compra/},
+  {k:'dias', label:'Dias sem pedir (se a planilha trouxer em dias)', req:false, kw:['dias de inatividade','dias sem','dias desde','inatividade','recencia','dias'], not:/nasc|cadastr/},
+  {k:'valor', label:'Valor do pedido ou ticket médio', req:false, kw:['total pago pelo cliente','valor total','ticket medio','ticket','total gasto','valor do pedido','valor dos itens','valor','total','preco','amount','gasto','faturamento'], not:/cancelad|taxa|incentivo|frete|comiss|desconto|entrega|servico|liquido|pontos|parcela|percentual|base de calculo/},
+  {k:'qtd', label:'Quantidade de pedidos', req:false, kw:['quantidade de pedidos','total de pedidos','numero de pedidos','qtd pedidos','qtde pedidos','num pedidos','n pedidos','numero de compras','visitas','pedidos','compras','frequencia','quantidade','qtd','qtde'], not:/\bid\b|numero do pedido|n do pedido|codigo|agend|aceito|priorid|status|item|produto|cancelad|dias/}
 ];
-function norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[_\-]/g,' ').trim(); }
-var NOT_ORDER_DATE = /nasc|aniver|cadastr|criacao da conta|birth|entrega prevista/;
+function norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[º°]/g,'').replace(/[_\-\/().]/g,' ').replace(/\s+/g,' ').trim(); }
+var NOT_ORDER_DATE = /nasc|aniver|cadastr|criacao da conta|birth|entrega prevista|previs|cancel|agend|repasse|vencimento|cliente desde|primeiro pedido|primeira compra/;
 function guess(headers, rows){
   var used = {}, map = {};
   FIELDS.forEach(function(F){
@@ -735,9 +742,12 @@ function guess(headers, rows){
     headers.forEach(function(h, i){
       if(used[i]) return;
       var H = norm(h);
+      if(F.not && F.not.test(H)) return;
       if(F.k === 'data' && NOT_ORDER_DATE.test(H)) return;
       F.kw.forEach(function(kw, j){ var K = norm(kw); if(H === K && 100 - j > score){ score = 100 - j; best = i; } else if(H.indexOf(K) > -1 && 60 - j > score){ score = 60 - j; best = i; } });
     });
+    // coluna "último pedido" que traz DIAS (Goomer) em vez de data: vira o campo "dias"
+    if(F.k === 'data' && best >= 0 && dateScore(rows, best).ok === 0 && intScore(rows, best) > 0){ map.dias = best; used[best] = true; best = -1; }
     if(F.k === 'data' && best < 0){
       headers.forEach(function(h, i){ if(best >= 0 || used[i] || NOT_ORDER_DATE.test(norm(h))) return; var ok = rows.slice(0,15).filter(function(r){ return parseDate(r[i]) != null; }).length; if(ok >= Math.min(5, rows.length) && ok > 0) best = i; });
     }
@@ -748,6 +758,8 @@ function guess(headers, rows){
 
 /* ---------- juntar linhas por cliente ---------- */
 function dateScore(rows, i){ var n = 0, tot = 0; rows.slice(0, 200).forEach(function(r){ var v = r[i]; if(v === '' || v == null) return; tot++; if(parseDate(v) != null) n++; }); return {ok:n, tot:tot}; }
+// quantas das primeiras linhas são inteiros pequenos (0 a 5000): sinal de "dias sem pedir"
+function intScore(rows, i){ var n = 0, tot = 0; rows.slice(0, 200).forEach(function(r){ var v = r[i]; if(v === '' || v == null) return; tot++; var x = typeof v === 'number' ? v : (/^\d{1,4}$/.test(String(v).trim()) ? +v : NaN); if(x >= 0 && x <= 5000 && x === Math.floor(x)) n++; }); return tot && n / tot >= 0.8 ? n : 0; }
 function bestDateCol(headers, rows, avoid){
   var best = -1, bestN = 0;
   headers.forEach(function(h, i){ if(avoid && avoid[i]) return; if(NOT_ORDER_DATE.test(norm(h))) return; var s = dateScore(rows, i); if(s.ok > bestN){ bestN = s.ok; best = i; } });
@@ -757,9 +769,13 @@ function aggregate(rows, map){
   var byKey = {}, skipped = 0, noName = 0, perRow = 0, dates = [];
   rows.forEach(function(r){
     var nome = normName(map.nome != null ? r[map.nome] : '');
+    if(map.sobrenome != null && nome){ var sn = normName(r[map.sobrenome]); if(sn && nome.toLowerCase().indexOf(sn.toLowerCase()) < 0) nome = nome + ' ' + sn; }
     var tel = map.tel != null ? normPhone(r[map.tel]) : '';
+    if(tel && (nome.length < 2 || /^(cliente|consumidor|sem nome|nao informado|não informado|n\/a|-+|\.+)$/i.test(nome) || !/[a-z0-9]/i.test(nome))) nome = '';
     var dt = parseDate(map.data != null ? r[map.data] : null);
+    if(dt == null && map.dias != null){ var dv = r[map.dias], dn = typeof dv === 'number' ? dv : parseFloat(String(dv).replace(',', '.')); if(isFinite(dn) && dn >= 0 && dn <= 5000) dt = today0() - Math.round(dn) * DAY; }
     if(!nome && !tel){ noName++; return; }
+    if(/^(total|totais|subtotal|soma)\b/i.test(nome) && !tel){ skipped++; return; }
     if(dt == null){ skipped++; return; }
     dates.push(dt);
     var key = tel && tel.length >= 10 ? 't' + tel : 'n' + keyName(nome);
@@ -1065,9 +1081,9 @@ var QZ = [
 ];
 function rxSave(l){ lsSet(LEAD_KEY, JSON.stringify(l)); }
 function rxExport(sis){
-  return sis === 'Cardápio Web' ? 'No painel do Cardápio Web: <b>Relatórios → Clientes → Exportar</b>.' :
-         sis === 'Anota AI' ? 'No Anota AI: <b>Relatórios → Pedidos</b>, escolha os últimos 6 meses e exporte em Excel.' :
-         sis === 'Saipos' ? 'Na Saipos: <b>Relatórios → Vendas por período</b>, filtre os últimos meses e clique em <b>Exportar</b>.' :
+  return sis === 'Cardápio Web' ? 'No painel do Cardápio Web: menu <b>Clientes</b> → exportar (ou <b>Histórico de Pedidos → Exportar</b>).' :
+         sis === 'Anota AI' ? 'No Anota AI: <b>Relatórios → Clientes</b> → aba <b>Inativos</b> → exportar em <b>Excel</b>. Depois repita com a aba <b>Ativos</b>.' :
+         sis === 'Saipos' ? 'Na Saipos: <b>Vendas por período</b>, filtre os últimos 6 meses e clique em <b>Exportar</b>.' :
          'No seu sistema, procure em <b>Clientes</b> ou <b>Relatórios → Pedidos</b> a opção <b>Exportar</b> (Excel ou CSV).';
 }
 function renderQuiz(){
@@ -1152,14 +1168,17 @@ function renderImport(errMsg){
     '<details class="help"><summary>De onde eu tiro essa planilha?</summary><div class="help-body">'+
       '<ul>'+
         '<li><b>Cardápio Web:</b> exporte o relatório de <b>Clientes</b>. Ele já traz telefone, data do último pedido, quantidade de pedidos e ticket médio.</li>'+
-        '<li><b>Anota AI:</b> em <b>Relatórios</b>, exporte o relatório de <b>Pedidos</b> em Excel e importe aqui. Depois exporte o relatório de <b>Clientes</b> e use o botão <b>Completar telefones</b> no painel.</li>'+
-        '<li><b>Saipos:</b> em <b>Relatórios → Vendas por período</b>, filtre os últimos meses e clique em <b>Exportar</b>.</li>'+
+        '<li><b>Anota AI:</b> em <b>Relatórios → Clientes</b>, abra a aba <b>Inativos</b> (e depois a <b>Ativos</b>) e exporte em <b>Excel</b>. Essa planilha já traz telefone e dias sem pedir. Se a base passar de 10.000 clientes, exporte em partes e importe uma depois da outra.</li>'+
+        '<li><b>Goomer:</b> em <b>CRM → Clientes</b>, clique em <b>Exportar</b>.</li>'+
+        '<li><b>Alloy:</b> em <b>Clientes → Lista de clientes</b>, clique em <b>Exportar dados</b> (ou crie um público e use <b>Baixar público</b>).</li>'+
+        '<li><b>Delivery Direto / Jotajá:</b> na área de <b>Clientes</b>, exporte em Excel ou CSV.</li>'+
+        '<li><b>Saipos:</b> em <b>Vendas por período</b>, filtre os últimos 6 meses e clique em <b>Exportar</b>. Se vier sem telefone, exporte também <b>Cadastro de clientes → Exportar para Excel</b> e use <b>Completar telefones</b> no painel.</li>'+
         '<li><b>Outro sistema de delivery ou cardápio digital:</b> procure em <b>Clientes</b> ou <b>Relatórios → Pedidos</b> a opção <b>Exportar</b> (Excel ou CSV).</li>'+
         '<li><b>Sistema de caixa (PDV):</b> o relatório de vendas por cliente costuma ter exportação para Excel.</li>'+
         '<li><b>Planilha ou caderno próprio:</b> baixe a planilha modelo, preencha e envie.</li>'+
         '<li><b>Google Planilhas:</b> Arquivo → Fazer download → Microsoft Excel (.xlsx).</li>'+
       '</ul>'+
-      '<p>Pedidos feitos pelo iFood normalmente não trazem o telefone do cliente. Nesse caso, importe os pedidos do seu canal próprio.</p>'+
+      '<p><b>iFood:</b> o relatório de pedidos do iFood não traz nome nem telefone do cliente (só um 0800 temporário), então não serve para a Máquina. Use o WhatsApp ou o seu canal próprio.</p>'+
     '</div></details>'+
   '</div>';
   $('restName').addEventListener('input', function(){ lsSet(REST_KEY, this.value); });
@@ -1221,7 +1240,8 @@ function renderMap(errMsg){
       P.headers.map(function(h, i){ return '<option value="'+i+'"'+(P.map[F.k] === i ? ' selected' : '')+'>'+esc(h)+'</option>'; }).join('')+'</select></div>';
   }
   var prev = P.rows.slice(0, 5), PH = P.mode === 'phones';
-  var fields = PH ? FIELDS.filter(function(F){ return F.k === 'nome' || F.k === 'tel'; }) : FIELDS;
+  var fields = PH ? FIELDS.filter(function(F){ return F.k === 'nome' || F.k === 'tel'; }) : FIELDS.filter(function(F){ return (F.k !== 'sobrenome' && F.k !== 'dias') || P.map[F.k] != null; });
+  var hasOldBase = !!(S.base && S.base.clients && S.base.clients.length && !S.base.sample && !PH && !P.sample);
   root.innerHTML =
   '<div class="imp">'+
     '<div class="imp-head"><span class="eyebrow">'+(PH ? 'Completar telefones' : 'Passo 2 de 2')+'</span><h1>'+(PH ? 'Qual coluna tem o nome e qual tem o telefone?' : 'Confira as colunas da sua planilha.')+'</h1>'+
@@ -1230,6 +1250,7 @@ function renderMap(errMsg){
     (errMsg ? '<div class="msg-err">'+errMsg+'</div>' : '')+
     (P.sample ? '<div class="msg-warn">Estes são dados de exemplo, com nomes e telefones fictícios. Use para conhecer a ferramenta e depois importe a sua planilha.</div>' : '')+
     '<div class="card" style="gap:14px">'+(PH ? '' : '<div class="f"><label for="mapRest">Nome do restaurante</label><input id="mapRest" autocomplete="organization" value="'+esc(P.restaurante)+'" placeholder="Ex.: Burger da Vila" maxlength="80"></div>')+
+    (hasOldBase ? '<label style="display:flex;gap:10px;align-items:center;font-size:14.5px;font-weight:600"><input type="checkbox" id="mapMerge"'+(P.merge !== false ? ' checked' : '')+'> Juntar com os '+nf.format(S.base.clients.length)+' clientes já importados (quem não estiver nesta planilha continua na base)</label>' : '')+
     '<div class="map-grid">'+fields.map(sel).join('')+(PH || P.sample ? '' : '<div class="f"><label for="mapSis">De qual sistema veio a planilha? <span style="font-weight:500;color:var(--ink2)">(opcional)</span></label><select id="mapSis"><option value="">Escolha</option>'+['Cardápio Web','Anota AI','Saipos','Goomer','Consumer','Outro sistema','Planilha própria'].map(function(o){ return '<option'+(P.sistema===o?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>')+'</div></div>'+
     '<div><p style="font-weight:700;font-size:14px;margin-bottom:8px">Primeiras linhas da planilha'+(RAIOX ? ' <span style="font-weight:500;color:var(--ink2)">(os dados aparecem na assinatura)</span>' : '')+'</p><div class="pv-wrap"><table><thead><tr>'+P.headers.map(function(h){ return '<th>'+esc(h)+'</th>'; }).join('')+'</tr></thead><tbody>'+
       prev.map(function(r){ return '<tr>'+P.headers.map(function(_, i){ var v = r[i]; if(v instanceof Date) v = fmtDate(v.getTime()); return '<td>'+(RAIOX ? '<span class="blur">'+esc(v)+'</span>' : esc(v))+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div></div>'+
@@ -1238,14 +1259,15 @@ function renderMap(errMsg){
   function dateHint(){
     var el = $('map_data'); if(!el) return; var f = el.closest('.f'), h = f.querySelector('.hint');
     if(!h){ h = document.createElement('span'); h.className = 'hint'; f.appendChild(h); }
-    if(P.map.data == null){ h.textContent = ''; return; }
+    if(P.map.data == null){ h.innerHTML = P.map.dias != null ? '<span style="color:var(--accent-text);font-weight:700">✓ Vamos usar a coluna de dias sem pedir</span>' : ''; return; }
     var sc = dateScore(P.rows, P.map.data);
-    h.innerHTML = sc.ok ? '<span style="color:var(--accent-text);font-weight:700">✓ '+nf.format(sc.ok)+' de '+nf.format(sc.tot)+' linhas com data válida</span>' : '<span style="color:var(--bad);font-weight:700">Essa coluna não tem datas. Escolha a coluna com a data do pedido.</span>';
+    h.innerHTML = sc.ok ? '<span style="color:var(--accent-text);font-weight:700">✓ '+nf.format(sc.ok)+' de '+nf.format(sc.tot)+' linhas com data válida</span>' : (intScore(P.rows, P.map.data) ? '<span style="color:var(--accent-text);font-weight:700">✓ Essa coluna traz dias sem pedir. Vamos converter em data.</span>' : '<span style="color:var(--bad);font-weight:700">Essa coluna não tem datas. Escolha a coluna com a data do pedido.</span>');
   }
   root.querySelectorAll('select[data-k]').forEach(function(s){ s.addEventListener('change', function(){ var v = s.value; if(v === '') delete P.map[s.getAttribute('data-k')]; else P.map[s.getAttribute('data-k')] = +v; if(s.getAttribute('data-k') === 'data') dateHint(); }); });
   dateHint();
   if($('mapRest')) $('mapRest').addEventListener('input', function(){ P.restaurante = this.value; });
   if($('mapSis')) $('mapSis').addEventListener('change', function(){ P.sistema = this.value; });
+  if($('mapMerge')) $('mapMerge').addEventListener('change', function(){ P.merge = this.checked; });
   $('mapBack').addEventListener('click', function(){ S.view = null; S.pending = null; if(PH){ S.mode = 'base'; render(); } else renderImport(); });
   $('mapGo').addEventListener('click', PH ? runPhones : runImport);
 }
@@ -1264,18 +1286,32 @@ function runPhones(){
 
 function runImport(){
   var P = S.pending;
+  if(P.headers.some(function(h){ return /id completo do pedido|produto logistico|incentivo promocional do ifood/.test(norm(h)); })) return renderMap('Essa é a planilha de pedidos do <b>iFood</b>. Ela não traz nome nem telefone do cliente (o iFood não libera), então não dá para usar aqui. Conecte o WhatsApp do restaurante ou use a planilha do seu canal próprio.');
   if(P.map.nome == null && P.map.tel == null) return renderMap('Escolha a coluna com o <b>nome</b> do cliente.');
-  if(P.map.data == null) return renderMap('Escolha a coluna com a <b>data</b> do pedido. Sem ela não dá para saber quem sumiu.');
-  if(dateScore(P.rows, P.map.data).ok === 0){
+  if(P.map.data == null && P.map.dias == null) return renderMap('Escolha a coluna com a <b>data</b> do pedido (ou a de <b>dias sem pedir</b>). Sem ela não dá para saber quem sumiu.');
+  if(P.map.data != null && dateScore(P.rows, P.map.data).ok === 0){
+    if(intScore(P.rows, P.map.data) > 0){ P.map.dias = P.map.data; delete P.map.data; }
+    else {
     var used = {}; Object.keys(P.map).forEach(function(k){ if(k !== 'data') used[P.map[k]] = true; });
     var bd = bestDateCol(P.headers, P.rows, used);
     if(bd >= 0){ P.map.data = bd; return renderMap('A coluna escolhida não tinha datas. Trocamos para <b>'+esc(P.headers[bd])+'</b>, que tem as datas dos pedidos. Confira e toque em analisar de novo.'); }
+    }
   }
   var res = aggregate(P.rows, P.map);
   if(!res.clients.length) return renderMap('Nenhuma linha teve uma data válida na coluna escolhida. Confira se escolheu a coluna certa. As datas precisam estar como 25/09/2026 ou 2026-09-25.');
   S.base = {restaurante: (P.restaurante || '').trim() || 'Meu restaurante', sistema: P.sistema || null, arquivo:P.file, importadoEm:Date.now(), sample:!!P.sample, clients:res.clients, ticketPadrao:45, porPedido:res.rowsPerOrder, pedidosMes:res.pedidosMes, ignoradas:res.skipped + res.noName};
   var old = load();
-  if(old && old.clients && !P.sample){ var sent = {}; old.clients.forEach(function(c){ if(c.contatado) sent[(c.tel || '') + '|' + keyName(c.nome)] = c.contatado; }); S.base.clients.forEach(function(c){ var k = (c.tel || '') + '|' + keyName(c.nome); if(sent[k]) c.contatado = sent[k]; }); }
+  if(old && old.clients && !P.sample){
+    var sent = {}; old.clients.forEach(function(c){ if(c.contatado) sent[(c.tel || '') + '|' + keyName(c.nome)] = c.contatado; });
+    S.base.clients.forEach(function(c){ var k = (c.tel || '') + '|' + keyName(c.nome); if(sent[k]) c.contatado = sent[k]; });
+    if(P.merge !== false && !old.sample){
+      var seenTel = {}, seenNome = {};
+      S.base.clients.forEach(function(c){ if(waOk(c.tel)) seenTel[c.tel] = true; else seenNome[keyName(c.nome)] = true; });
+      var extra = old.clients.filter(function(c){ return waOk(c.tel) ? !seenTel[c.tel] : !seenNome[keyName(c.nome)]; }).map(function(c, i){ return Object.assign({}, c, {id:'o'+i}); });
+      S.base.clients = S.base.clients.concat(extra);
+      if(extra.length) S.base.arquivo = P.file + ' + base anterior';
+    }
+  }
   save();
   track('import_done', {clientes:res.clients.length, por_pedido:res.rowsPerOrder, amostra:!!P.sample});
   reportUsage(RAIOX ? 'raio_x' : 'importou');

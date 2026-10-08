@@ -92,6 +92,21 @@ Se `apiUrl` ficar vazio, o app volta a funcionar só com planilha e links `wa.me
 - Na uazapi, não configurar webhooks para endereços desconhecidos.
 - Trocar o admin token da uazapi quando alguém com acesso sair da Click.
 
+## Planilhas dos sistemas (o que o leitor reconhece)
+
+| Sistema | Onde exportar | Como vem | Tratamento |
+|---|---|---|---|
+| Cardápio Web | Clientes (exportar) ou Histórico de Pedidos → Exportar | `Nome`, `Telefone`, `Data do último pedido`, `Quantidade de pedidos`, `Ticket médio` (.xlsx, datas como número do Excel) | Reconhecido direto |
+| Anota AI | Relatórios → Clientes → aba Inativos/Ativos → Excel ou CSV (máx. 10.000 linhas por arquivo) | `Nome do Cliente`, `Número Telefone`, `Número Whatsapp`, `Quantidade de Pedidos`, `Dias de Inatividade` | Usa "Dias de Inatividade" como recência; prefere `Número Telefone` (a coluna WhatsApp às vezes vem sem o 9); nomes genéricos (`cliente`, `.`) viram o telefone; "Juntar com a base" para bases maiores que 10.000 |
+| Goomer | CRM → Clientes → Exportar | `Último pedido` em **dias** | Detecta coluna de dias e converte |
+| Alloy | Clientes → Exportar dados / Baixar público (.xlsx) | `Última visita`, `Visitas (Número de compras)`, `Valor gasto`, `WhatsApp` | Sinônimos reconhecidos |
+| Delivery Direto / Jotajá | Clientes → CSV ou Excel | pode vir `Primeiro nome` + `Sobrenome`, `Telefone` | Junta nome e sobrenome |
+| Saipos | Vendas por período → Exportar; Cadastro de clientes → Exportar para Excel | não confirmado | Mapeamento manual na tela de conferência; "Completar telefones" com a lista de clientes |
+| iFood | Relatório de pedidos (.xlsx) | sem nome e sem telefone do cliente; 0800 de relé | Recusado com explicação; 0800 nunca vira telefone |
+| Consumer, Colibri | provável .xls antigo | não aceito | Mensagem pede para salvar como .xlsx ou CSV |
+
+Regras gerais: cabeçalhos são comparados sem acento, caixa ou pontuação; colunas de cancelamento, agendamento, nascimento e cadastro nunca são tomadas como data do pedido; colunas com `(R$)`, taxa, incentivo, frete ou desconto não são tomadas como valor; `Nº do pedido`, `ID` e status não são tomados como quantidade; linhas "Total" no fim são ignoradas; planilhas de uma linha por pedido são agregadas por telefone (ou nome).
+
 ## Limitações desta versão (MVP)
 
 - **Acesso:** o `app.html` não tem login. Quem tiver o link consegue abrir, mas cada pessoa só vê os dados que ela mesma importou. O link não aparece na LP e a página pede aos buscadores para não ser indexada. Login de verdade (ex.: Supabase) fica para a fase 2.
