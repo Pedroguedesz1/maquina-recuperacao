@@ -21,6 +21,7 @@ Anúncio → `index.html` → botão de assinatura → checkout do gateway → *
 - Aceita **uma linha por cliente** (com data do último pedido) ou **uma linha por pedido**. Nesse caso, junta os pedidos pelo telefone, ou pelo nome quando não há telefone.
 - Identifica as colunas sozinho, e o dono confirma numa tela de conferência.
 - Faixas: ativo (até 14 dias), atenção (15–29), inativo (30–59), perdido (60+). Também mostra "pediram só 1 vez" quando há número de pedidos.
+- **Não é cliente**: tira um contato da lista (fornecedor, número errado). Vai para a faixa "Removidos", de onde pode voltar. A marcação sobrevive à reimportação.
 - Filtros, busca, ordenação, seleção, "copiar telefones", "exportar lista" (CSV), campanha com mensagem editável (cupom, benefício, prazo) e botão que abre o WhatsApp **no número do cliente** com a mensagem pronta.
 - Marca quem já foi contatado, e a marcação continua depois de reimportar a base.
 - **Nomes e telefones dos clientes ficam só no navegador do restaurante** (`localStorage`). A Click recebe apenas números agregados (veja "Banco de dados"). Trocou de aparelho ou limpou o navegador? É só importar de novo.
@@ -52,12 +53,12 @@ var CONFIG = { whatsappClick: "", modeloUrl: "modelo-clientes.csv",
 
 Com `CONFIG.apiUrl` preenchido no `app.html`, o app passa a:
 
-1. Pedir um **código de acesso** (um por restaurante, tabela `restaurantes`). Sem código, ninguém entra.
+1. Pedir a **entrada pelo WhatsApp**: o restaurante digita o número usado no Raio-X ou na compra, recebe um código de 6 dígitos no WhatsApp (enviado pelo número da Click, instância do restaurante indicado no segredo `CLICK_CODIGO`) e entra. O código de acesso interno (`restaurantes.codigo`) fica salvo no navegador; o cliente não precisa conhecê-lo. Quem comprou direto, sem Raio-X, é cadastrado com `insert into restaurantes (nome, lead_whatsapp, plano) values (..., '5561999990000', 'pago')`. Há também a opção "Tenho um código de acesso".
 2. Oferecer **"Conectar meu WhatsApp"**: QR code ou código de pareamento (para quem está no próprio celular). Cada restaurante vira uma instância na uazapi.
 3. **Importar as conversas** do WhatsApp como clientes. A data da última conversa vale como "último pedido". Se já havia uma planilha, os dois são juntados pelo telefone.
 4. **Enviar as mensagens pela própria Máquina**, uma por vez, com intervalo de 30 s a 1 min, até `limite_dia` por dia (padrão 30). O limite e o intervalo mínimo (15 s) são conferidos no servidor. Quem foi contatado há menos de 7 dias é pulado.
 
-Peças: `backend/migracao-whatsapp.sql` (tabelas `restaurantes` e `envios`) e `backend/supabase/functions/wa/index.ts` (função que fala com a uazapi). Segredos da função: `UAZAPI_URL` e `UAZAPI_ADMIN_TOKEN`. Os tokens da uazapi nunca chegam ao navegador.
+Peças: `backend/migracao-whatsapp.sql`, `backend/migracao-login-whatsapp.sql` (tabelas `restaurantes` e `envios`) e `backend/supabase/functions/wa/index.ts` (função que fala com a uazapi). Segredos da função: `UAZAPI_URL`, `UAZAPI_ADMIN_TOKEN` e `CLICK_CODIGO` (código do restaurante cujo WhatsApp é o número da Click). Os tokens da uazapi nunca chegam ao navegador.
 
 Criar o acesso de um restaurante: `insert into restaurantes (nome) values ('Nome') returning codigo;` no SQL Editor.
 

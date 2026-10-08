@@ -887,7 +887,7 @@ var S = {
   base: load(),
   view: null, pending: null, mode: 'base',
   filter:'inativos', sort:'dias', q:'', limit:50, selected:{}, camp:(function(){ try{ return JSON.parse(lsGet(MSG_KEY)); }catch(e){ return null; } })(), confirmDel:false,
-  auth:null, wa:{status:'disconnected', numero:null}, conn:null
+  auth:null, wa:{status:'disconnected', numero:null}, conn:null, login:null
 };
 
 /* ---------- código de acesso e ponte com o WhatsApp (função "wa" no Supabase) ---------- */
@@ -911,27 +911,72 @@ function entrar(){
 function isMobile(){ return window.matchMedia('(max-width:720px)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent); }
 function waConnected(){ return apiOn() && S.wa && S.wa.status === 'connected'; }
 
-function renderLogin(errMsg){
-  var root = $('root');
+function renderLogin(errMsg, etapa){
+  var root = $('root'), L = S.login || (S.login = {zap: lsGet(LEAD_KEY) ? (rxLead().whatsapp || '') : '', etapa:'zap'});
+  if(etapa) L.etapa = etapa;
   var pago = /[?&]pago=1/.test(location.search) || /asaas\.com/.test(document.referrer || '');
+  var zapTxt = esc(L.zap);
   root.innerHTML =
-  '<div class="login"><span class="eyebrow">Máquina de Recuperação</span><h1>'+(pago ? 'Pagamento confirmado! 🎉' : 'Digite o seu código de acesso')+'</h1>'+
-    (pago ? '<div class="msg-warn" style="text-align:left">Seu <b>código de acesso</b> chega no seu WhatsApp em alguns minutos. Se você fez o Raio-X neste mesmo aparelho, ele já entra sozinho. Assim que receber, digite aqui.</div>' : '<p class="lead">Você recebeu esse código logo depois da assinatura, pelo WhatsApp ou e-mail.</p>')+
-    (errMsg ? '<div class="msg-err">'+errMsg+'</div>' : '')+
-    '<div class="f"><input id="codeIn" maxlength="12" placeholder="AB12CD34" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Código de acesso"></div>'+
-    '<button type="button" class="btn" id="codeGo">Entrar</button>'+
-    '<p class="privacy">Não achou o código? <a href="https://wa.me/'+esc(String(CONFIG.whatsappClick).replace(/\D/g,''))+'?text='+encodeURIComponent('Olá! Assinei a Máquina de Recuperação e preciso do meu código de acesso.')+'" target="_blank" rel="noopener">Fale com a Click</a>.</p>'+
+  '<div class="login"><span class="eyebrow">Máquina de Recuperação</span>'+
+    (L.etapa === 'codigo' ?
+      '<h1>Digite o código que chegou no seu WhatsApp</h1><p class="lead">Enviamos um código de 6 números para <b>'+zapTxt+'</b>. Ele vale por 10 minutos.</p>'+
+      (errMsg ? '<div class="msg-err">'+errMsg+'</div>' : '')+
+      '<div class="f"><input id="otpIn" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code" aria-label="Código de 6 números"></div>'+
+      '<button type="button" class="btn" id="otpGo">Entrar</button>'+
+      '<p class="privacy">Não chegou? <button type="button" class="linkbtn" id="otpAgain">Enviar de novo</button> · <button type="button" class="linkbtn" id="otpBack">Trocar o número</button></p>'
+    : L.etapa === 'manual' ?
+      '<h1>Digite o seu código de acesso</h1><p class="lead">Use o código que a Click te enviou.</p>'+
+      (errMsg ? '<div class="msg-err">'+errMsg+'</div>' : '')+
+      '<div class="f"><input id="codeIn" maxlength="12" placeholder="AB12CD34" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Código de acesso"></div>'+
+      '<button type="button" class="btn" id="codeGo">Entrar</button>'+
+      '<p class="privacy"><button type="button" class="linkbtn" id="otpBack">Entrar com o WhatsApp</button></p>'
+    :
+      '<h1>'+(pago ? 'Pagamento confirmado! 🎉' : 'Entre com o seu WhatsApp')+'</h1>'+
+      '<p class="lead">'+(pago ? 'Para entrar, digite o WhatsApp que você usou na compra. Você recebe um código de 6 números por lá.' : 'Digite o WhatsApp que você usou no Raio-X ou na compra. Você recebe um código de 6 números por lá.')+'</p>'+
+      (errMsg ? '<div class="msg-err">'+errMsg+'</div>' : '')+
+      '<div class="f"><input id="zapIn" type="tel" inputmode="tel" autocomplete="tel" placeholder="(61) 99999-0000" value="'+zapTxt+'" style="font:700 20px/1.2 var(--font);letter-spacing:0;text-transform:none"></div>'+
+      '<button type="button" class="btn" id="zapGo">Receber código no WhatsApp</button>'+
+      '<p class="privacy">Comprou e não consegue entrar? <a href="https://wa.me/'+esc(String(CONFIG.whatsappClick).replace(/\D/g,''))+'?text='+encodeURIComponent('Olá! Assinei a Máquina de Recuperação e não consigo entrar.')+'" target="_blank" rel="noopener">Fale com a Click</a> · <button type="button" class="linkbtn" id="toManual">Tenho um código de acesso</button></p>')+
   '</div>';
-  var go = function(){
-    var v = $('codeIn').value.trim().toUpperCase();
-    if(v.length < 6){ renderLogin('Confira o código: ele tem 8 letras e números.'); $('codeIn').value = v; return; }
-    $('codeGo').disabled = true; $('codeGo').textContent = 'Entrando…';
-    lsSet(CODE_KEY, v);
-    entrar().then(function(j){ if(j.ok){ track('login_ok'); render(); } else renderLogin(j.erro || 'Código não encontrado.'); });
-  };
-  $('codeGo').addEventListener('click', go);
-  $('codeIn').addEventListener('keydown', function(e){ if(e.key === 'Enter') go(); });
-  setTimeout(function(){ try{ $('codeIn').focus(); }catch(e){} }, 50);
+  function zapDigits(){ var d = L.zap.replace(/\D/g,''); if(d.length === 10 || d.length === 11) d = '55' + d; return d; }
+  if($('zapIn')){
+    maskPhoneInput($('zapIn')); $('zapIn').addEventListener('input', function(){ L.zap = this.value; });
+    var pedir = function(){
+      var d = zapDigits(); if(!/^55\d{10,11}$/.test(d)){ renderLogin('Digite o número com DDD, por exemplo (61) 99999-0000.'); return; }
+      $('zapGo').disabled = true; $('zapGo').textContent = 'Enviando…';
+      api('otp_pedir', {whatsapp:d}).then(function(j){ if(j.ok){ track('otp_sent'); renderLogin('', 'codigo'); } else renderLogin(j.erro || 'Não foi possível enviar o código.'); });
+    };
+    $('zapGo').addEventListener('click', pedir); $('zapIn').addEventListener('keydown', function(e){ if(e.key === 'Enter') pedir(); });
+    $('toManual').addEventListener('click', function(){ renderLogin('', 'manual'); });
+    setTimeout(function(){ try{ $('zapIn').focus(); }catch(e){} }, 50);
+  }
+  if($('otpIn')){
+    var validar = function(){
+      var o = $('otpIn').value.replace(/\D/g,''); if(o.length !== 6){ renderLogin('O código tem 6 números.', 'codigo'); return; }
+      $('otpGo').disabled = true; $('otpGo').textContent = 'Entrando…';
+      api('otp_validar', {whatsapp:zapDigits(), otp:o}).then(function(j){
+        if(!j.ok){ renderLogin(j.erro || 'Código incorreto.', 'codigo'); return; }
+        lsSet(CODE_KEY, j.codigo); S.login = null;
+        entrar().then(function(k){ if(k.ok){ track('login_ok', {via:'whatsapp'}); render(); } else renderLogin(k.erro || 'Não foi possível entrar.', 'zap'); });
+      });
+    };
+    $('otpGo').addEventListener('click', validar); $('otpIn').addEventListener('keydown', function(e){ if(e.key === 'Enter') validar(); });
+    $('otpAgain').addEventListener('click', function(){ api('otp_pedir', {whatsapp:zapDigits()}).then(function(j){ toast(j.ok ? 'Código enviado de novo.' : (j.erro || 'Não foi possível enviar.')); }); });
+    $('otpBack').addEventListener('click', function(){ renderLogin('', 'zap'); });
+    setTimeout(function(){ try{ $('otpIn').focus(); }catch(e){} }, 50);
+  }
+  if($('codeIn')){
+    var go = function(){
+      var v = $('codeIn').value.trim().toUpperCase();
+      if(v.length < 6){ renderLogin('Confira o código: ele tem 8 a 10 letras e números.', 'manual'); $('codeIn').value = v; return; }
+      $('codeGo').disabled = true; $('codeGo').textContent = 'Entrando…';
+      lsSet(CODE_KEY, v);
+      entrar().then(function(j){ if(j.ok){ track('login_ok', {via:'codigo'}); render(); } else renderLogin(j.erro || 'Código não encontrado.', 'manual'); });
+    };
+    $('codeGo').addEventListener('click', go); $('codeIn').addEventListener('keydown', function(e){ if(e.key === 'Enter') go(); });
+    $('otpBack').addEventListener('click', function(){ renderLogin('', 'zap'); });
+    setTimeout(function(){ try{ $('codeIn').focus(); }catch(e){} }, 50);
+  }
 }
 
 function renderStart(){
@@ -1050,7 +1095,7 @@ function importWA(){
     var list = [], seen = {};
     (j.conversas || []).forEach(function(w, i){
       var tel = normPhone(w.tel) || w.tel, o = byTel[tel];
-      var c = {id:'w'+i, nome: w.nome || (o && o.nome) || fmtPhone(tel), tel:tel, ultimo: Math.max(w.ultimo, o && o.ultimo || 0), pedidos: o ? o.pedidos : null, ticket: o ? o.ticket : null, contatado: o ? o.contatado : null};
+      var c = {id:'w'+i, nome: w.nome || (o && o.nome) || fmtPhone(tel), tel:tel, ultimo: Math.max(w.ultimo, o && o.ultimo || 0), pedidos: o ? o.pedidos : null, ticket: o ? o.ticket : null, contatado: o ? o.contatado : null, removido: o ? o.removido : null};
       if(/^\(?\d/.test(c.nome) && o && o.nome) c.nome = o.nome;
       list.push(c); seen[tel] = true;
     });
@@ -1317,8 +1362,8 @@ function runImport(){
   S.base = {restaurante: (P.restaurante || '').trim() || 'Meu restaurante', sistema: P.sistema || null, arquivo:P.file, importadoEm:Date.now(), sample:!!P.sample, clients:res.clients, ticketPadrao:45, porPedido:res.rowsPerOrder, pedidosMes:res.pedidosMes, ignoradas:res.skipped + res.noName, comPedidoSemData:res.comPedidoSemData};
   var old = load();
   if(old && old.clients && !P.sample){
-    var sent = {}; old.clients.forEach(function(c){ if(c.contatado) sent[(c.tel || '') + '|' + keyName(c.nome)] = c.contatado; });
-    S.base.clients.forEach(function(c){ var k = (c.tel || '') + '|' + keyName(c.nome); if(sent[k]) c.contatado = sent[k]; });
+    var sent = {}, rem = {}; old.clients.forEach(function(c){ var k0 = (c.tel || '') + '|' + keyName(c.nome); if(c.contatado) sent[k0] = c.contatado; if(c.removido){ rem[k0] = c.removido; if(c.tel) rem['t' + c.tel] = c.removido; } });
+    S.base.clients.forEach(function(c){ var k = (c.tel || '') + '|' + keyName(c.nome); if(sent[k]) c.contatado = sent[k]; if(rem[k] || (c.tel && rem['t' + c.tel])) c.removido = rem[k] || rem['t' + c.tel]; });
     if(P.merge !== false && !old.sample){
       var seenTel = {}, seenNome = {};
       S.base.clients.forEach(function(c){ if(waOk(c.tel)) seenTel[c.tel] = true; else seenNome[keyName(c.nome)] = true; });
@@ -1338,8 +1383,9 @@ function runImport(){
 
 /* ---------- painel ---------- */
 function stats(){
-  var B = S.base, s = {total:B.clients.length, ativo:0, d15:0, d30:0, d60:0, umPedido:0, pot:0, semTel:0, contatados:0, temTicket:false, temPedidos:false, nunca:0};
+  var B = S.base, s = {total:B.clients.length, ativo:0, d15:0, d30:0, d60:0, umPedido:0, pot:0, semTel:0, contatados:0, temTicket:false, temPedidos:false, nunca:0, removidos:0};
   B.clients.forEach(function(c){
+    if(c.removido){ s.removidos++; s.total--; return; }
     var d = daysOf(c), st = status(d).k;
     if(st === 'nunca'){ s.nunca++; if(c.contatado) s.contatados++; return; }
     if(st === 'ativo') s.ativo++; else if(st === '15') s.d15++; else if(st === '30') s.d30++; else s.d60++;
@@ -1357,6 +1403,8 @@ function visible(){
   var f = S.filter, q = keyName(S.q), qd = S.q.replace(/\D/g,'');
   var l = S.base.clients.filter(function(c){
     var d = daysOf(c);
+    if(f === 'removidos') return !!c.removido;
+    if(c.removido) return false;
     if(f === 'nunca') return !!c.nunca && (!q || keyName(c.nome).indexOf(q) > -1 || (qd.length >= 3 && (c.tel || '').indexOf(qd) > -1));
     if(c.nunca) return false;
     if(f === 'inativos' && d < 15) return false;
@@ -1387,6 +1435,7 @@ function renderDash(){
   if(st.temPedidos && st.umPedido) filters.push(['um','Pediram só 1 vez']);
   filters.push(['ativos','Ativos']);
   if(st.nunca) filters.push(['nunca','Nunca pediram ('+nf.format(st.nunca)+')']);
+  if(st.removidos) filters.push(['removidos','Removidos ('+nf.format(st.removidos)+')']);
   root.classList.toggle('rx', RAIOX);
   root.innerHTML =
   '<div class="dash">'+
@@ -1420,7 +1469,7 @@ function renderDash(){
       '<div class="toolbar"><div class="filters" role="group" aria-label="Filtrar clientes">'+filters.map(function(o){ return '<button type="button" class="chip" data-f="'+o[0]+'" aria-pressed="'+(S.filter === o[0])+'">'+o[1]+'</button>'; }).join('')+'</div></div>'+
       '<div class="toolbar"><input class="search" id="q" type="search" placeholder="Buscar por nome ou telefone" value="'+esc(S.q)+'" aria-label="Buscar cliente" maxlength="60">'+
         '<div class="tb-right"><label for="sortSel" style="font-size:13px;color:var(--ink2);font-weight:600">Ordenar</label><select class="sort" id="sortSel"><option value="dias">Mais tempo sem comprar</option><option value="ticket">Maior ticket</option>'+(st.temPedidos ? '<option value="pedidos">Mais pedidos</option>' : '')+'</select></div></div>'+
-      '<div class="sel-bar"><span class="count" id="selCount"></span><div class="sel-actions"><button type="button" class="linkbtn" id="selAll">Selecionar todos</button><button type="button" class="linkbtn" id="selNone">Limpar</button><button type="button" class="linkbtn" id="copyTel">Copiar telefones</button><button type="button" class="linkbtn" id="exportCsv">Exportar lista</button><button type="button" class="btn sm" id="recSel">Recuperar clientes</button></div></div>'+
+      '<div class="sel-bar"><span class="count" id="selCount"></span><div class="sel-actions"><button type="button" class="linkbtn" id="selAll">Selecionar todos</button><button type="button" class="linkbtn" id="selNone">Limpar</button><button type="button" class="linkbtn" id="copyTel">Copiar telefones</button><button type="button" class="linkbtn" id="exportCsv">Exportar lista</button>'+(RAIOX ? '' : '<button type="button" class="linkbtn" id="remSel" title="Tira os selecionados da lista (fornecedor, número errado…)">Não é cliente</button>')+'<button type="button" class="btn sm" id="recSel">Recuperar clientes</button></div></div>'+
       '<div class="tbl-wrap"><table><thead><tr><th class="ck"><input type="checkbox" id="ckAll" aria-label="Selecionar todos os clientes da lista"></th><th>Cliente</th><th class="n">Último pedido</th>'+(st.temPedidos ? '<th class="n">Pedidos</th>' : '')+'<th class="n">Ticket</th><th>Status</th><th>Ação</th></tr></thead><tbody id="tb"></tbody></table></div>'+
       '<div class="cards-m" id="cm"></div>'+
       '<button type="button" class="btn ghost sm more" id="more" hidden>Mostrar mais</button>'+
@@ -1454,6 +1503,7 @@ function renderDash(){
   $('more').addEventListener('click', function(){ S.limit += 100; rows(); });
   $('recSel').addEventListener('click', function(){ var l = selList(); if(!l.length){ toast('Selecione pelo menos um cliente.'); return; } openCampaign(l); });
   $('copyTel').addEventListener('click', copyPhones);
+  if($('remSel')) $('remSel').addEventListener('click', function(){ var l = selList(); if(!l.length){ toast('Selecione quem não é cliente.'); return; } var restore = S.filter === 'removidos'; l.forEach(function(c){ c.removido = restore ? null : Date.now(); }); S.selected = {}; save(); track(restore ? 'contact_restored' : 'contact_removed', {qtd:l.length}); renderDash(); toast(restore ? pl(l.length,'contato devolvido à lista','contatos devolvidos à lista') : pl(l.length,'contato removido','contatos removidos')+'. Veja em "Removidos" para desfazer.'); });
   $('exportCsv').addEventListener('click', exportList);
   rows();
 }
@@ -1463,7 +1513,7 @@ function selList(){ return S.base.clients.filter(function(c){ return S.selected[
 function rows(){
   var st = stats(), vis = visible(), shown = vis.slice(0, S.limit), tp = S.base.ticketPadrao;
   function tick(c){ return c.ticket != null ? brl0.format(c.ticket) : '<span style="color:var(--ink3)">—</span>'; }
-  function action(c){ if(RAIOX) return '<button type="button" class="rec lk" data-unlock="linha"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"9\" rx=\"2\"/><path d=\"M8 11V8a4 4 0 0 1 8 0v3\"/></svg> Recuperar</button>'; return waOk(c.tel) ? '<button type="button" class="rec" data-rec="'+c.id+'">Recuperar</button>' : '<span class="rec off" title="Sem telefone válido">'+(c.tel ? 'Telefone inválido' : 'Sem telefone')+'</span>'; }
+  function action(c){ if(c.removido) return '<span class="tag" style="background:var(--bg2);color:var(--ink2)">Removido</span>'; if(RAIOX) return '<button type="button" class="rec lk" data-unlock="linha"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"9\" rx=\"2\"/><path d=\"M8 11V8a4 4 0 0 1 8 0v3\"/></svg> Recuperar</button>'; return waOk(c.tel) ? '<button type="button" class="rec" data-rec="'+c.id+'">Recuperar</button>' : '<span class="rec off" title="Sem telefone válido">'+(c.tel ? 'Telefone inválido' : 'Sem telefone')+'</span>'; }
   function telTxt(c){ if(RAIOX) return c.tel ? '<span class="blur">(00) 00000-0000</span>' : 'sem telefone'; return !c.tel ? 'sem telefone' : waOk(c.tel) ? esc(fmtPhone(c.tel)) : '<span style="color:var(--bad)">telefone inválido</span>'; }
   function tags(c, s){ return '<span class="tag '+s.c+'">'+s.t+'</span>'+(c.contatado ? ' <span class="tag ct" title="Mensagem aberta em '+fmtDate(c.contatado)+'">Contatado '+fmtDate(c.contatado).slice(0,5)+'</span>' : ''); }
   $('tb').innerHTML = shown.map(function(c){
@@ -1486,6 +1536,8 @@ function rows(){
   var n = Object.keys(S.selected).length;
   $('selCount').innerHTML = n ? '<b>'+nf.format(n)+'</b> '+(n > 1 ? 'clientes selecionados' : 'cliente selecionado') : 'Nenhum cliente selecionado';
   $('recSel').textContent = n ? 'Recuperar '+nf.format(n)+' '+(n > 1 ? 'clientes' : 'cliente') : 'Recuperar clientes';
+  if($('remSel')) $('remSel').textContent = S.filter === 'removidos' ? 'Devolver à lista' : 'Não é cliente';
+  $('recSel').hidden = S.filter === 'removidos';
   $('ckAll').checked = shown.length > 0 && shown.every(function(c){ return S.selected[c.id]; });
   $('more').hidden = vis.length <= S.limit;
   $('footInfo').textContent = 'Mostrando '+nf.format(shown.length)+' de '+nf.format(vis.length)+' clientes';
@@ -1544,6 +1596,7 @@ function openCampaign(list){
   var camp = soNunca ? (S.campNovo || (S.campNovo = (function(){ try{ return JSON.parse(lsGet(MSG_KEY + '_novo')); }catch(e){ return null; } })() || { msg:'Oi, {nome}! 👋\nAqui é do '+B.restaurante+'. Você se cadastrou com a gente mas ainda não experimentou nosso cardápio.\n\nQue tal hoje? No primeiro pedido você ganha {beneficio} com o cupom {cupom}, válido até {prazo}.\n\nÉ só chamar a gente por aqui 😊', cupom:'PRIMEIRO10', beneficio:'10% de desconto', prazo:'domingo' })) : (S.camp || (S.camp = { msg:'Oi, {nome}! 👋\nSentimos sua falta aqui no '+B.restaurante+'.\n\nPreparamos uma condição especial para você voltar a pedir: {beneficio} com o cupom {cupom}, válido até {prazo}.\n\nÉ só chamar a gente por aqui 😊', cupom:'VOLTEI10', beneficio:'10% de desconto', prazo:'domingo' }));
   var viaApi = waConnected();
   var recent = function(c){ return c.contatado && (Date.now() - c.contatado) < DIAS_ENTRE_CONTATOS * DAY; };
+  list = list.filter(function(c){ return !c.removido; });
   var queue = list.filter(function(c){ return waOk(c.tel) && !(viaApi && recent(c)); }), noTel = list.filter(function(c){ return !waOk(c.tel); }).length, pulados = viaApi ? list.filter(function(c){ return waOk(c.tel) && recent(c); }).length : 0, head = queue[0] || list[0], opened = 0;
   var restam = viaApi && S.auth ? Math.max(0, S.auth.limite - S.auth.enviadosHoje) : Infinity;
   var bg = document.createElement('div'); bg.className = 'modal-bg';
