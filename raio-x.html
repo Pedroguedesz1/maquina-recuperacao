@@ -443,6 +443,9 @@ tr.sel td{background:var(--accent-soft)}
 .tag.ok{background:var(--accent-soft);color:var(--accent-text)}
 .tag.ct{background:#E3ECFB;color:#2A55A5}
 .tag.nv{background:#EEEAFE;color:#5B47C7}
+.kpis.sete{grid-template-columns:repeat(7,1fr)}
+@media (max-width:1020px){.kpis.sete{grid-template-columns:repeat(4,1fr)}}
+@media (max-width:720px){.kpis.sete{grid-template-columns:1fr 1fr}}
 .tag.nv::before{background:#8B7CF6}
 .rec.wa{background:#25D366;color:#0A2D14;text-decoration:none;display:inline-block}
 .rec.wa:hover{background:#1FBF5B}
@@ -1397,7 +1400,7 @@ function renderDash(){
     '<div class="dash-head"><div><span class="eyebrow">'+esc(B.restaurante)+'</span><h2>'+(st.inativos ? '<span class="hl">'+pl(st.inativos,'cliente','clientes')+'</span> '+(st.inativos===1?'parou':'pararam')+' de pedir.' : 'Nenhum cliente parado há mais de 15 dias.')+'</h2>'+
       '<p>'+nf.format(st.total)+' clientes na base'+(st.nunca ? ' · <b>'+nf.format(st.nunca)+'</b> cadastrados que nunca pediram (veja a faixa <b>Nunca pediram</b>)' : '')+(B.ignoradas ? ' · '+pl(B.ignoradas,'linha ignorada','linhas ignoradas')+' por falta de nome, telefone ou data' : '')+(B.comPedidoSemData ? ' · <b style="color:var(--bad)">'+pl(B.comPedidoSemData,'cliente tem pedidos mas veio sem data do último pedido','clientes têm pedidos mas vieram sem data do último pedido')+'</b> (confira a exportação do sistema)' : '')+(B.origem === 'whatsapp' ? ' · a data do último pedido é a da <b>última conversa</b> no WhatsApp' : '')+'.</p></div></div>'+
     (RAIOX ? '<div class="rx-lock"><span class="ic"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"9\" rx=\"2\"/><path d=\"M8 11V8a4 4 0 0 1 8 0v3\"/></svg></span><div><b>Este é o seu Raio-X gratuito.</b><span>Para ver os nomes e telefones de quem sumiu e mandar a mensagem de volta pelo WhatsApp, libere a Máquina completa.</span><span class="price">R$ 49,90/mês · cancele quando quiser</span></div><a class="btn" href="#" data-unlock="banner">Liberar nomes e mensagens</a></div>' : '')+
-    '<div class="kpis">'+
+    '<div class="kpis'+(st.nunca ? ' sete' : '')+'">'+
       '<div class="kpi"><small>Clientes na base</small><b>'+nf.format(st.total)+'</b><em>'+(B.porPedido ? 'juntados a partir dos pedidos' : (st.nunca ? 'já pediram pelo menos 1 vez' : 'importados'))+'</em></div>'+
       (st.nunca ? '<div class="kpi"><small><i style="background:#8B7CF6"></i>Nunca pediram</small><b>'+nf.format(st.nunca)+'</b><em>cadastrados com WhatsApp, sem pedido</em></div>' : '')+
       '<div class="kpi"><small><i style="background:var(--accent)"></i>Ativos</small><b>'+nf.format(st.ativo)+'</b><em>pediram há menos de 15 dias</em></div>'+
