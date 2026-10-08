@@ -556,6 +556,7 @@ var CONFIG = {
 var RAIOX = true;
 (function(){
 "use strict";
+if(RAIOX){ var nb = document.querySelector('.navbar'); if(nb) nb.hidden = true; }
 var $ = function(id){ return document.getElementById(id); };
 var nf = new Intl.NumberFormat('pt-BR');
 var brl0 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
