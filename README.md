@@ -65,6 +65,33 @@ Privacidade: ao enviar pela API, o telefone do cliente passa pelo servidor até 
 
 Se `apiUrl` ficar vazio, o app volta a funcionar só com planilha e links `wa.me`, sem código de acesso.
 
+## Segurança (como está protegido)
+
+**Site (GitHub Pages)**
+- Só a chave **publicável** do Supabase vai no HTML. Ela só permite inserir em `leads` e `uso_app`.
+- Tudo o que o usuário digita (ou vem da planilha/WhatsApp) passa por `esc()` antes de ir para a tela: sem script injection.
+- Todos os campos têm limite de caracteres e são cortados de novo antes do envio.
+
+**Banco (Supabase)** · `backend/migracao-seguranca.sql` e `backend/migracao-politicas.sql`
+- `leads` e `uso_app`: a chave publicável só **insere**; não lê, não altera, não apaga. Tipos de lead e eventos limitados a uma lista fixa.
+- `restaurantes`, `envios`, `rl`: sem nenhum acesso de fora; só a função `wa` (chave de serviço) chega lá.
+- Tamanho máximo por coluna e limites de volume por gatilho: 5 cadastros por WhatsApp a cada 10 min, 300 por hora no total, 30 acessos provisórios de Raio-X por hora.
+
+**Função `wa` (ponte com a uazapi)**
+- Token de administrador e tokens de instância ficam só nos segredos do servidor. O navegador nunca os vê.
+- Aceita chamadas só dos sites da lista `ALLOWED_ORIGINS` (padrão: GitHub Pages e clickinteligente.com).
+- Rate limit: 120 chamadas/min por IP, 60/min por código, 6 Raio-X por IP a cada 10 min, 10 códigos errados por IP a cada 10 min.
+- Valida tudo que entra (código, telefone, tamanho da mensagem, tamanho do pedido) e nunca devolve a resposta crua da uazapi: detalhes vão para o log, o cliente recebe uma mensagem genérica.
+- Envio: máximo `limite_dia` por dia, 15 s entre mensagens, bloqueado para acesso provisório (`plano = raiox`).
+- Acesso provisório vence em 24 h: a instância é desconectada e apagada na uazapi.
+- Telefones de clientes finais não são gravados (só um hash em `envios`).
+
+**O que depende de pessoas**
+- Nunca colar o `service_role`, a senha do banco ou o admin token da uazapi em chat, código ou planilha. Se vazar, trocar na hora (Supabase → API keys; uazapi → painel).
+- Ativar autenticação em dois fatores nas contas do Supabase, GitHub, Asaas e uazapi.
+- Na uazapi, não configurar webhooks para endereços desconhecidos.
+- Trocar o admin token da uazapi quando alguém com acesso sair da Click.
+
 ## Limitações desta versão (MVP)
 
 - **Acesso:** o `app.html` não tem login. Quem tiver o link consegue abrir, mas cada pessoa só vê os dados que ela mesma importou. O link não aparece na LP e a página pede aos buscadores para não ser indexada. Login de verdade (ex.: Supabase) fica para a fase 2.
