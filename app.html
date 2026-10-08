@@ -440,6 +440,47 @@ tr.sel td{background:var(--accent-soft)}
 .tick-in{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink2);flex-wrap:wrap}
 .tick-in input{width:90px;font:600 14px/1 var(--mono);padding:8px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
 .confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--bad-soft);color:var(--bad);border-radius:14px;padding:10px 12px;font-size:14px;font-weight:600}
+/* ======= código de acesso, origem dos clientes e WhatsApp ======= */
+.login{max-width:460px;margin:24px auto 0;display:grid;gap:14px;text-align:center}
+.login h1{font-size:clamp(28px,4.4vw,38px)}
+.login input{font:800 26px/1.2 var(--mono);letter-spacing:.16em;text-transform:uppercase;text-align:center;padding:16px}
+.start{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.opt-card{display:grid;gap:10px;align-content:start;background:var(--surface);border-radius:22px;padding:22px;box-shadow:inset 0 0 0 1.5px var(--line);text-align:left;cursor:pointer;font:inherit;color:inherit;border:0;position:relative}
+.opt-card:hover{box-shadow:inset 0 0 0 2px var(--accent-text)}
+.opt-card.main{background:var(--inv);color:var(--inv-ink);box-shadow:none}
+.opt-card.main p{color:var(--inv-ink2)}
+.opt-card .ic{width:48px;height:48px;border-radius:14px;background:var(--accent);color:#08170C;display:grid;place-items:center}
+.opt-card .ic svg{width:24px;height:24px}
+.opt-card b{font-size:19px;letter-spacing:-.01em}
+.opt-card p{font-size:14.5px;color:var(--ink2);margin:0}
+.opt-card .badge{position:absolute;top:16px;right:16px;font:800 11px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#08170C;padding:7px 10px;border-radius:999px}
+.conn{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.box{background:var(--surface);border-radius:22px;padding:22px;display:grid;gap:14px;box-shadow:inset 0 0 0 1px var(--line)}
+.tabs{display:flex;gap:4px;background:var(--bg);padding:4px;border-radius:999px}
+.tabs button{flex:1;font:700 14px/1.2 var(--font);padding:11px 8px;border-radius:999px;border:0;background:transparent;color:var(--ink2);cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.qr{display:grid;place-items:center;gap:10px;background:#fff;border-radius:18px;padding:14px;min-height:270px;box-shadow:inset 0 0 0 1px var(--line);text-align:center;color:var(--ink2);font-size:14px}
+.qr img{width:240px;height:240px;max-width:100%}
+.paircode{font:800 clamp(28px,7vw,40px)/1 var(--mono);letter-spacing:.14em;text-align:center;background:var(--bg);border-radius:16px;padding:22px 12px;user-select:all;word-break:break-all}
+.tut{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.tut li{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:14px;font-size:14.5px;transition:background .35s,transform .35s}
+.tut li.on{background:var(--accent-soft);transform:translateX(4px)}
+.tut li i{flex:none;width:26px;height:26px;border-radius:50%;background:var(--inv);color:var(--accent);font:800 13px/26px var(--mono);text-align:center;font-style:normal}
+.tut li.on i{background:var(--accent);color:#08170C}
+.tut li b{display:block}
+.tut li span{color:var(--ink2);font-size:13.5px}
+.conn-status{display:flex;gap:10px;align-items:center;font-weight:700;font-size:14.5px}
+.conn-status .spinner,.qr .spinner{width:22px;height:22px;border-width:3px;margin:0}
+.wa-strip{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;background:var(--surface);border-radius:16px;padding:12px 16px;box-shadow:inset 0 0 0 1px var(--line);font-size:14px}
+.wa-strip .dot{width:10px;height:10px;border-radius:50%;background:var(--ink3);display:inline-block;margin-right:8px;vertical-align:middle}
+.wa-strip .dot.on{background:#25D366;box-shadow:0 0 0 4px rgba(37,211,102,.18)}
+.meter{height:8px;border-radius:99px;background:var(--bg);overflow:hidden;width:110px;display:inline-block;vertical-align:middle;margin-left:8px}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.countdown{font:800 46px/1 var(--mono);text-align:center;letter-spacing:-.02em}
+.rules{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14.5px;color:var(--ink2)}
+.rules b{color:var(--ink)}
+@media (max-width:720px){ .start,.conn{grid-template-columns:1fr} .login{margin-top:8px} }
+
 @media (max-width:720px){
   .fn{grid-template-columns:1fr auto;gap:4px 10px}
   .fn .tr{grid-column:1 / -1;grid-row:2}
@@ -472,7 +513,9 @@ var CONFIG = {
   modeloUrl: "modelo-clientes.csv",
   checkoutUrl: "https://sandbox.asaas.com/c/iqcrsk3f6ecfcai3",  /* link de pagamento (Raio-X leva para cá) */
   supabaseUrl: "https://msrilojbncclwksphjjt.supabase.co",
-  supabaseKey: "sb_publishable_H7J9hYHDwXIz33PPvTLerQ_2Kx57zh0"
+  supabaseKey: "sb_publishable_H7J9hYHDwXIz33PPvTLerQ_2Kx57zh0",
+  /* Função "wa" no Supabase (ponte com a uazapi). Deixe vazio para o app funcionar só com planilha, sem código de acesso. */
+  apiUrl: "https://msrilojbncclwksphjjt.supabase.co/functions/v1/wa"
 };
 
 var RAIOX = /*RAIOX*/false;
@@ -780,8 +823,180 @@ function openUnlock(origem){
 var S = {
   base: load(),
   view: null, pending: null, mode: 'base',
-  filter:'inativos', sort:'dias', q:'', limit:50, selected:{}, camp:(function(){ try{ return JSON.parse(lsGet(MSG_KEY)); }catch(e){ return null; } })(), confirmDel:false
+  filter:'inativos', sort:'dias', q:'', limit:50, selected:{}, camp:(function(){ try{ return JSON.parse(lsGet(MSG_KEY)); }catch(e){ return null; } })(), confirmDel:false,
+  auth:null, wa:{status:'disconnected', numero:null}, conn:null
 };
+
+/* ---------- código de acesso e ponte com o WhatsApp (função "wa" no Supabase) ---------- */
+var CODE_KEY = 'click_maquina_codigo_v1';
+function apiOn(){ return !RAIOX && !!CONFIG.apiUrl; }
+function api(acao, data){
+  var body = Object.assign({codigo: lsGet(CODE_KEY) || '', acao: acao}, data || {});
+  return fetch(CONFIG.apiUrl, {method:'POST', headers:{'Content-Type':'application/json', 'apikey':CONFIG.supabaseKey}, body:JSON.stringify(body)})
+    .then(function(r){ return r.json().catch(function(){ return {ok:false, erro:'O servidor respondeu de um jeito inesperado. Tente de novo.'}; }); })
+    .catch(function(){ return {ok:false, erro:'Sem conexão com o servidor. Confira sua internet e tente de novo.'}; })
+    .then(function(j){ if(j && j.codigo_invalido){ lsSet(CODE_KEY, ''); S.auth = null; } if(j && j.wa) S.wa = j.wa; if(j && j.enviados_hoje != null && S.auth){ S.auth.enviadosHoje = j.enviados_hoje; if(j.limite) S.auth.limite = j.limite; } return j; });
+}
+function entrar(){
+  return api('entrar').then(function(j){
+    if(!j.ok) return j;
+    S.auth = {nome:j.nome, limite:j.limite || 30, enviadosHoje:j.enviados_hoje || 0};
+    if(j.nome) lsSet(REST_KEY, j.nome);
+    return j;
+  });
+}
+function isMobile(){ return window.matchMedia('(max-width:720px)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent); }
+function waConnected(){ return apiOn() && S.wa && S.wa.status === 'connected'; }
+
+function renderLogin(errMsg){
+  var root = $('root');
+  root.innerHTML =
+  '<div class="login"><span class="eyebrow">Máquina de Recuperação</span><h1>Digite o seu código de acesso</h1>'+
+    '<p class="lead">Você recebeu esse código logo depois da assinatura, pelo WhatsApp ou e-mail.</p>'+
+    (errMsg ? '<div class="msg-err">'+errMsg+'</div>' : '')+
+    '<div class="f"><input id="codeIn" maxlength="12" placeholder="AB12CD34" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Código de acesso"></div>'+
+    '<button type="button" class="btn" id="codeGo">Entrar</button>'+
+    '<p class="privacy">Não achou o código? <a href="https://wa.me/'+esc(String(CONFIG.whatsappClick).replace(/\D/g,''))+'?text='+encodeURIComponent('Olá! Assinei a Máquina de Recuperação e preciso do meu código de acesso.')+'" target="_blank" rel="noopener">Fale com a Click</a>.</p>'+
+  '</div>';
+  var go = function(){
+    var v = $('codeIn').value.trim().toUpperCase();
+    if(v.length < 6){ renderLogin('Confira o código: ele tem 8 letras e números.'); $('codeIn').value = v; return; }
+    $('codeGo').disabled = true; $('codeGo').textContent = 'Entrando…';
+    lsSet(CODE_KEY, v);
+    entrar().then(function(j){ if(j.ok){ track('login_ok'); render(); } else renderLogin(j.erro || 'Código não encontrado.'); });
+  };
+  $('codeGo').addEventListener('click', go);
+  $('codeIn').addEventListener('keydown', function(e){ if(e.key === 'Enter') go(); });
+  setTimeout(function(){ try{ $('codeIn').focus(); }catch(e){} }, 50);
+}
+
+function renderStart(){
+  var root = $('root');
+  root.innerHTML =
+  '<div class="imp"><div class="imp-head"><span class="eyebrow">Passo 1 de 2</span><h1>De onde vêm os seus clientes?</h1><p class="lead">Escolha um caminho. Leva menos de 2 minutos.</p></div>'+
+    '<div class="start">'+
+      '<button type="button" class="opt-card main" id="goWa"><span class="badge">Recomendado</span><span class="ic"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 12 12 0 0 0 4.6 4c1.7.7 2.3.8 3.2.7a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg></span><b>Conectar meu WhatsApp</b><p>A Máquina puxa sozinha todo mundo que já conversou com o restaurante. Sem planilha, sem digitar nada.</p></button>'+
+      '<button type="button" class="opt-card" id="goSheet"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10M15 10v10"/></svg></span><b>Enviar uma planilha</b><p>Exportada do seu sistema (Cardápio Web, Anota AI, Saipos…) ou preenchida por você.</p></button>'+
+    '</div>'+
+    '<p class="privacy" style="text-align:center">Não tem nenhum dos dois? <a href="'+esc(CONFIG.modeloUrl)+'" download>Baixe a planilha modelo</a>, preencha nome, telefone e data do último pedido e envie.</p>'+
+  '</div>';
+  $('goWa').addEventListener('click', function(){ track('source_pick', {origem:'whatsapp'}); S.view = 'connect'; render(); window.scrollTo(0,0); });
+  $('goSheet').addEventListener('click', function(){ track('source_pick', {origem:'planilha'}); S.view = 'sheet'; renderImport(); window.scrollTo(0,0); });
+}
+
+/* ---------- conectar o WhatsApp ---------- */
+var TUT_QR = [
+  ['Abra o WhatsApp no celular do restaurante', 'Precisa ser o número que os clientes já conhecem.'],
+  ['Toque nos três pontinhos ⋮ (Android) ou em Configurações (iPhone)', 'Fica no canto superior direito ou no rodapé.'],
+  ['Toque em "Aparelhos conectados"', 'Depois em "Conectar aparelho".'],
+  ['Aponte a câmera para o QR code ao lado', 'Pronto! A Máquina conecta sozinha em alguns segundos.']
+];
+var TUT_CODE = [
+  ['Digite o número do WhatsApp do restaurante e toque em "Gerar código"', 'Vai aparecer um código de 8 letras aqui.'],
+  ['No celular do restaurante, abra o WhatsApp → ⋮ (ou Configurações) → "Aparelhos conectados"', 'Depois toque em "Conectar aparelho".'],
+  ['Toque em "Conectar com número de telefone"', 'É o link pequeno, embaixo da câmera.'],
+  ['Digite o código que apareceu aqui', 'A Máquina conecta sozinha em alguns segundos.']
+];
+function renderConnect(){
+  var root = $('root');
+  var C = S.conn || (S.conn = {tab: isMobile() ? 'code' : 'qr', qrcode:null, paircode:null, phone:'', busy:false, msg:'', poll:null, qrTimer:null, tutTimer:null, tutIdx:0});
+  var connected = S.wa && S.wa.status === 'connected';
+  var tut = C.tab === 'qr' ? TUT_QR : TUT_CODE;
+  root.innerHTML =
+  '<div class="imp" style="max-width:980px"><div class="imp-head"><span class="eyebrow">Passo 1 de 2</span><h1>Conecte o WhatsApp do restaurante.</h1>'+
+    '<p class="lead">É igual a usar o WhatsApp no computador: o número continua no celular, e a Máquina só lê as conversas e envia as mensagens que você mandar.</p></div>'+
+    (connected ?
+      '<div class="box" style="text-align:center;justify-items:center"><div class="done-box"><div class="ok"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></div>'+
+        '<h3>WhatsApp conectado'+(S.wa.numero ? ': '+esc(fmtPhone(S.wa.numero)) : '')+'.</h3><p style="color:var(--ink2)">Agora a Máquina vai buscar as conversas e separar quem parou de pedir.</p>'+
+        '<button type="button" class="btn" id="waImport">Importar meus clientes do WhatsApp</button>'+
+        '<button type="button" class="linkbtn" id="waOut">Desconectar este número</button></div></div>'
+    :
+      '<div class="conn">'+
+        '<div class="box">'+
+          '<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="qr" aria-pressed="'+(C.tab==='qr')+'">Ler QR code</button><button type="button" role="tab" data-tab="code" aria-pressed="'+(C.tab==='code')+'">Usar código (sem câmera)</button></div>'+
+          (C.msg ? '<div class="msg-err">'+esc(C.msg)+'</div>' : '')+
+          (C.tab === 'qr' ?
+            '<div class="qr" id="qrBox">'+(C.qrcode ? '<img src="'+C.qrcode+'" alt="QR code para conectar o WhatsApp">' : '<span class="spinner" aria-hidden="true"></span><span>Gerando o QR code…</span>')+'</div>'+
+            '<p style="font-size:13.5px;color:var(--ink2);text-align:center">O QR code se renova sozinho. <button type="button" class="linkbtn" id="qrNew">Gerar outro agora</button></p>'
+          :
+            '<div class="f"><label for="pcPhone">WhatsApp do restaurante</label><input id="pcPhone" type="tel" inputmode="tel" placeholder="(61) 90000-0000" value="'+esc(C.phone)+'"></div>'+
+            '<button type="button" class="btn" id="pcGo"'+(C.busy ? ' disabled' : '')+'>'+(C.busy ? 'Gerando…' : (C.paircode ? 'Gerar outro código' : 'Gerar código'))+'</button>'+
+            (C.paircode ? '<div class="paircode" id="pcCode">'+esc(C.paircode)+'</div><p style="font-size:13.5px;color:var(--ink2);text-align:center">Digite esse código no celular do restaurante. Ele vale por alguns minutos.</p>' : '')
+          )+
+          '<div class="conn-status"><span class="spinner" aria-hidden="true"></span><span id="connTxt">Aguardando a conexão…</span></div>'+
+        '</div>'+
+        '<div class="box"><b style="font-size:17px">Como fazer no celular</b><ol class="tut" id="tut">'+tut.map(function(t, i){ return '<li'+(i === 0 ? ' class="on"' : '')+'><i>'+(i+1)+'</i><div><b>'+t[0]+'</b><span>'+t[1]+'</span></div></li>'; }).join('')+'</ol>'+
+          '<p class="privacy">Funciona no celular, no tablet e no computador. Só precisa do celular do restaurante por perto na hora de conectar.</p></div>'+
+      '</div>')+
+    '<div class="step-nav"><button type="button" class="back" id="connBack">Voltar</button></div>'+
+  '</div>';
+
+  function stopTimers(){ clearInterval(C.poll); clearInterval(C.qrTimer); clearInterval(C.tutTimer); C.poll = C.qrTimer = C.tutTimer = null; }
+  $('connBack').addEventListener('click', function(){ stopTimers(); S.conn = null; S.view = null; render(); });
+  if(connected){
+    stopTimers();
+    $('waImport').addEventListener('click', importWA);
+    $('waOut').addEventListener('click', function(){ if(!confirm('Desconectar o WhatsApp da Máquina?')) return; api('desconectar').then(function(){ S.wa = {status:'disconnected', numero:null}; S.conn = null; renderConnect(); }); });
+    return;
+  }
+  // tutorial animado: destaca um passo de cada vez
+  if(!C.tutTimer) C.tutTimer = setInterval(function(){ var li = document.querySelectorAll('#tut li'); if(!li.length) return; C.tutIdx = (C.tutIdx + 1) % li.length; li.forEach(function(el, i){ el.classList.toggle('on', i === C.tutIdx); }); }, 2200);
+  document.querySelectorAll('[data-tab]').forEach(function(b){ b.addEventListener('click', function(){ C.tab = b.getAttribute('data-tab'); C.msg = ''; C.tutIdx = 0; clearInterval(C.qrTimer); C.qrTimer = null; clearInterval(C.tutTimer); C.tutTimer = null; renderConnect(); }); });
+  function conectar(phone){
+    C.busy = true; C.msg = '';
+    return api('conectar', phone ? {phone: phone} : {}).then(function(j){
+      C.busy = false;
+      if(!j.ok){ C.msg = j.erro || 'Não foi possível iniciar a conexão.'; renderConnect(); return; }
+      if(j.status === 'connected'){ S.wa.status = 'connected'; renderConnect(); return; }
+      if(phone){ C.paircode = j.paircode || null; if(!C.paircode) C.msg = 'O servidor não devolveu um código. Tente pelo QR code.'; }
+      else { C.qrcode = j.qrcode || null; if(!C.qrcode) C.msg = 'O servidor não devolveu o QR code. Tente de novo ou use o código.'; }
+      renderConnect();
+    });
+  }
+  if(C.tab === 'qr'){
+    if(!C.qrcode && !C.busy) conectar('');
+    if(!C.qrTimer) C.qrTimer = setInterval(function(){ if(C.tab === 'qr' && !C.busy && !(S.wa && S.wa.status === 'connected')) conectar(''); }, 40000);
+    $('qrNew').addEventListener('click', function(){ C.qrcode = null; conectar(''); });
+  } else {
+    maskPhoneInput($('pcPhone'));
+    $('pcPhone').addEventListener('input', function(){ C.phone = this.value; });
+    $('pcGo').addEventListener('click', function(){
+      var d = C.phone.replace(/\D/g,''); if(d.length === 10 || d.length === 11) d = '55' + d;
+      if(!/^55\d{10,11}$/.test(d)){ C.msg = 'Digite o número com DDD, por exemplo (61) 99999-0000.'; renderConnect(); return; }
+      C.paircode = null; conectar(d);
+    });
+  }
+  if(!C.poll) C.poll = setInterval(function(){
+    api('status').then(function(j){
+      if(j.ok && j.wa && j.wa.status === 'connected'){ stopTimers(); track('wa_connected'); renderConnect(); }
+      else if($('connTxt')) $('connTxt').textContent = (j.wa && j.wa.status === 'connecting') ? 'Conectando… quase lá.' : 'Aguardando a conexão…';
+    });
+  }, 3000);
+}
+
+function importWA(){
+  var btn = $('waImport'); if(btn){ btn.disabled = true; btn.textContent = 'Buscando conversas…'; }
+  api('conversas').then(function(j){
+    if(!j.ok){ toast(j.erro || 'Não foi possível buscar as conversas.'); if(btn){ btn.disabled = false; btn.textContent = 'Importar meus clientes do WhatsApp'; } return; }
+    var old = S.base && S.base.clients && !S.base.sample ? S.base.clients : [];
+    var byTel = {};
+    old.forEach(function(c){ if(c.tel) byTel[c.tel] = c; });
+    var list = [], seen = {};
+    (j.conversas || []).forEach(function(w, i){
+      var tel = normPhone(w.tel) || w.tel, o = byTel[tel];
+      var c = {id:'w'+i, nome: w.nome || (o && o.nome) || fmtPhone(tel), tel:tel, ultimo: Math.max(w.ultimo, o && o.ultimo || 0), pedidos: o ? o.pedidos : null, ticket: o ? o.ticket : null, contatado: o ? o.contatado : null};
+      if(/^\(?\d/.test(c.nome) && o && o.nome) c.nome = o.nome;
+      list.push(c); seen[tel] = true;
+    });
+    old.forEach(function(c, i){ if(!seen[c.tel]) list.push(Object.assign({}, c, {id:'s'+i})); });
+    if(!list.length){ toast('Nenhuma conversa individual encontrada nesse WhatsApp.'); if(btn){ btn.disabled = false; btn.textContent = 'Importar meus clientes do WhatsApp'; } return; }
+    S.base = {restaurante: (S.auth && S.auth.nome) || lsGet(REST_KEY) || 'Meu restaurante', sistema:'WhatsApp', arquivo:'Conversas do WhatsApp', importadoEm:Date.now(), sample:false, clients:list, ticketPadrao:(S.base && S.base.ticketPadrao) || 45, porPedido:false, origem:'whatsapp', pedidosMes:null, ignoradas:0};
+    save(); S.conn = null; S.view = null; S.selected = {}; S.filter = 'inativos'; S.limit = 50; S.q = '';
+    track('import_done', {origem:'whatsapp', clientes:list.length}); reportUsage('importou');
+    render(); window.scrollTo(0,0);
+    toast(nf.format(j.total || 0) + ' conversas importadas do WhatsApp.');
+  });
+}
 
 function status(dias){
   if(dias < 15) return {k:'ativo', c:'ok', t:'Ativo'};
@@ -793,9 +1008,12 @@ function daysOf(c){ return Math.max(0, Math.round((today0() - c.ultimo) / DAY));
 
 /* ================= TELAS ================= */
 function render(){
+  if(apiOn() && !lsGet(CODE_KEY)) return renderLogin();
   if(S.view === 'map') return renderMap();
+  if(S.view === 'connect') return renderConnect();
+  if(S.view === 'sheet') return renderImport();
   if(S.base && S.base.clients && S.base.clients.length) return renderDash();
-  return renderImport();
+  return apiOn() ? renderStart() : renderImport();
 }
 
 function renderImportScreen(errMsg){ return renderImport(errMsg); }
@@ -814,7 +1032,7 @@ function renderImport(errMsg){
       '<b>Arraste sua planilha aqui</b><p>ou toque para escolher o arquivo · Excel (.xlsx) ou CSV</p>'+
       '<span class="btn sm">Escolher arquivo</span>'+
     '</label>'+
-    '<div class="imp-actions"><a class="btn ghost sm" href="'+esc(CONFIG.modeloUrl)+'" download id="dlModelo">Baixar planilha modelo</a>'+(RAIOX ? '' : '<button type="button" class="btn ghost sm" id="useSample">Testar com dados de exemplo</button>')+(hasOld ? '<button type="button" class="btn ghost sm" id="cancelImp">Voltar ao painel</button>' : '')+'</div>'+
+    '<div class="imp-actions"><a class="btn ghost sm" href="'+esc(CONFIG.modeloUrl)+'" download id="dlModelo">Baixar planilha modelo</a>'+(RAIOX ? '' : '<button type="button" class="btn ghost sm" id="useSample">Testar com dados de exemplo</button>')+(hasOld ? '<button type="button" class="btn ghost sm" id="cancelImp">Voltar ao painel</button>' : (apiOn() ? '<button type="button" class="btn ghost sm" id="cancelImp">Voltar</button>' : ''))+'</div>'+
     '<div class="lock"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>A planilha é lida aqui no seu navegador. Os nomes e telefones dos seus clientes ficam salvos só neste aparelho. A Click recebe apenas números gerais, como quantos clientes você tem e quantos pararam de pedir.</span></div>'+
     '<details class="help" open><summary>O que a planilha precisa ter?</summary><div class="help-body">'+
       '<p>Uma linha por cliente <b>ou</b> uma linha por pedido. Se vier uma linha por pedido, a Máquina junta os pedidos de cada cliente sozinha.</p>'+
@@ -842,7 +1060,7 @@ function renderImport(errMsg){
   if(RAIOX){ ['rxNome','rxZap'].forEach(function(id){ $(id).addEventListener('input', function(){ var l = rxLead(); l[id === 'rxNome' ? 'nome' : 'whatsapp'] = this.value; lsSet(LEAD_KEY, JSON.stringify(l)); }); }); maskPhoneInput($('rxZap')); $('rxPed').addEventListener('change', function(){ var l = rxLead(); l.pedidos = this.value; lsSet(LEAD_KEY, JSON.stringify(l)); }); }
   if($('useSample')) $('useSample').addEventListener('click', function(){ track('import_sample'); startMap(sampleRows(), 'dados-de-exemplo.csv', true); });
   $('dlModelo').addEventListener('click', function(){ track('template_download'); });
-  if($('cancelImp')) $('cancelImp').addEventListener('click', function(){ S.view = null; render(); });
+  if($('cancelImp')) $('cancelImp').addEventListener('click', function(){ S.view = null; render(); window.scrollTo(0,0); });
 }
 
 $('fileIn').addEventListener('change', function(){ var f = this.files[0]; this.value = ''; if(f) readFile(f); });
@@ -1008,8 +1226,11 @@ function renderDash(){
     '<div class="topbar"><span class="src">'+esc(B.arquivo)+' · importado em '+fmtDate(B.importadoEm)+'</span><div class="cta-row"><button type="button" class="btn ghost sm" id="reImp">Atualizar base</button><button type="button" class="btn ghost sm" id="delBase">Apagar dados</button></div></div>'+
     (S.confirmDel ? '<div class="confirm"><span>Apagar todos os clientes importados deste aparelho?</span><button type="button" class="btn sm" style="background:var(--bad);color:#fff" id="delYes">Apagar</button><button type="button" class="btn ghost sm" id="delNo">Cancelar</button></div>' : '')+
     (B.sample ? '<div class="msg-warn">Você está vendo <b>dados de exemplo</b>. Toque em <b>Atualizar base</b> para importar a planilha do seu restaurante.</div>' : '')+
+    (apiOn() ? '<div class="wa-strip"><span><i class="dot'+(waConnected() ? ' on' : '')+'"></i>'+(waConnected() ? 'WhatsApp conectado'+(S.wa.numero ? ' · '+esc(fmtPhone(S.wa.numero)) : '') : 'WhatsApp não conectado')+'</span>'+
+      (waConnected() && S.auth ? '<span>Envios hoje: <b>'+nf.format(S.auth.enviadosHoje)+'</b> de '+nf.format(S.auth.limite)+'<span class="meter"><i style="width:'+Math.min(100, S.auth.enviadosHoje / S.auth.limite * 100)+'%"></i></span></span>' : '')+
+      '<span class="cta-row">'+(waConnected() ? '<button type="button" class="btn ghost sm" id="waSync">Atualizar do WhatsApp</button>' : '<button type="button" class="btn sm" id="waConn">Conectar WhatsApp</button>')+'<button type="button" class="linkbtn" id="rulesBtn">Regras para proteger seu número</button></span></div>' : '')+
     '<div class="dash-head"><div><span class="eyebrow">'+esc(B.restaurante)+'</span><h2>'+(st.inativos ? '<span class="hl">'+pl(st.inativos,'cliente','clientes')+'</span> '+(st.inativos===1?'parou':'pararam')+' de pedir.' : 'Nenhum cliente parado há mais de 15 dias.')+'</h2>'+
-      '<p>'+nf.format(st.total)+' clientes na base'+(B.ignoradas ? ' · '+pl(B.ignoradas,'linha ignorada','linhas ignoradas')+' por falta de nome ou data' : '')+'.</p></div></div>'+
+      '<p>'+nf.format(st.total)+' clientes na base'+(B.ignoradas ? ' · '+pl(B.ignoradas,'linha ignorada','linhas ignoradas')+' por falta de nome ou data' : '')+(B.origem === 'whatsapp' ? ' · a data do último pedido é a da <b>última conversa</b> no WhatsApp' : '')+'.</p></div></div>'+
     (RAIOX ? '<div class="rx-lock"><span class="ic"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"9\" rx=\"2\"/><path d=\"M8 11V8a4 4 0 0 1 8 0v3\"/></svg></span><div><b>Este é o seu Raio-X gratuito.</b><span>Para ver os nomes e telefones de quem sumiu e mandar a mensagem de volta pelo WhatsApp, libere a Máquina completa.</span><span class="price">R$ 49,90/mês · cancele quando quiser</span></div><a class="btn" href="#" data-unlock="banner">Liberar nomes e mensagens</a></div>' : '')+
     '<div class="kpis">'+
       '<div class="kpi"><small>Clientes na base</small><b>'+nf.format(st.total)+'</b><em>'+(B.porPedido ? 'juntados a partir dos pedidos' : 'importados')+'</em></div>'+
@@ -1046,7 +1267,10 @@ function renderDash(){
   $('upSpec').href = wa('Olá! Uso a Máquina de Recuperação no '+B.restaurante+' e quero falar com um especialista da Click.');
   $('upFull').addEventListener('click', function(){ track('click_full_interest', {origem:'app'}); });
   $('upSpec').addEventListener('click', function(){ track('click_whatsapp', {origem:'app'}); });
-  $('reImp').addEventListener('click', function(){ S.view = null; S.mode = 'base'; renderImport(); window.scrollTo(0,0); });
+  $('reImp').addEventListener('click', function(){ S.mode = 'base'; if(apiOn()){ S.view = null; renderStart(); } else renderImport(); window.scrollTo(0,0); });
+  if($('waConn')) $('waConn').addEventListener('click', function(){ S.view = 'connect'; render(); window.scrollTo(0,0); });
+  if($('waSync')) $('waSync').addEventListener('click', function(){ this.disabled = true; this.textContent = 'Buscando…'; importWA(); });
+  if($('rulesBtn')) $('rulesBtn').addEventListener('click', openRules);
   if($('addTel')) $('addTel').addEventListener('click', function(){ S.mode = 'phones'; $('fileIn').click(); });
   $('delBase').addEventListener('click', function(){ S.confirmDel = true; renderDash(); });
   if($('delYes')) $('delYes').addEventListener('click', function(){ try{ localStorage.removeItem(KEY); }catch(e){} S.base = null; S.confirmDel = false; render(); toast('Dados apagados deste aparelho.'); });
@@ -1116,23 +1340,56 @@ function exportList(){
   track('export_list', {qtd:l.length});
 }
 
+/* ---------- regras anti-bloqueio ---------- */
+var LIMITE_PADRAO = 30, DIAS_ENTRE_CONTATOS = 7;
+function rulesHtml(){
+  var lim = (S.auth && S.auth.limite) || LIMITE_PADRAO;
+  return '<ol class="rules">'+
+    '<li><b>No máximo '+lim+' mensagens por dia.</b> A Máquina conta e para sozinha. Número novo ou pouco usado? Comece com 10 a 15 por dia na primeira semana.</li>'+
+    '<li><b>Uma de cada vez, com intervalo.</b> A Máquina espera de 30 segundos a 1 minuto entre as mensagens, como uma pessoa faria.</li>'+
+    '<li><b>Só para quem já pediu de você.</b> Nunca para lista comprada ou contato que nunca falou com o restaurante.</li>'+
+    '<li><b>Mensagem com o nome do cliente</b> e um motivo de verdade (cupom, novidade, saudade). Texto igual para todo mundo parece propaganda.</li>'+
+    '<li><b>Quem não respondeu, espere '+DIAS_ENTRE_CONTATOS+' dias</b> antes de mandar de novo. A Máquina pula quem foi contatado há menos de '+DIAS_ENTRE_CONTATOS+' dias.</li>'+
+    '<li><b>Se alguém pedir para parar, pare.</b> Bloqueios e denúncias são o que derruba um número.</li>'+
+    '<li><b>Responda quem responder.</b> Conversa de verdade é o melhor sinal para o WhatsApp.</li>'+
+  '</ol>';
+}
+function openRules(){
+  var bg = document.createElement('div'); bg.className = 'modal-bg';
+  bg.innerHTML = '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="rlT" style="grid-template-columns:1fr;max-width:600px"><div class="m-main">'+
+    '<div class="m-head"><div><span class="eyebrow">Proteja o seu número</span><h3 id="rlT" style="margin-top:6px">7 regras para não ser bloqueado</h3></div><button type="button" class="x" id="rlX" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'+
+    rulesHtml()+
+    '<p class="privacy">O WhatsApp não divulga um número exato. O que derruba um número é gente marcando como spam, não a quantidade em si. Essas regras são o que o mercado usa para ficar longe disso.</p>'+
+    '<button type="button" class="btn dark" id="rlOk">Entendi</button></div></div>';
+  document.body.appendChild(bg); document.body.style.overflow = 'hidden';
+  function close(){ bg.remove(); document.body.style.overflow = ''; }
+  bg.addEventListener('click', function(e){ if(e.target === bg) close(); });
+  $('rlX').addEventListener('click', close); $('rlOk').addEventListener('click', close);
+}
+
 /* ---------- campanha ---------- */
 function openCampaign(list){
   var B = S.base;
   track('recover_click', {qtd:list.length});
   var camp = S.camp || (S.camp = { msg:'Oi, {nome}! 👋\nSentimos sua falta aqui no '+B.restaurante+'.\n\nPreparamos uma condição especial para você voltar a pedir: {beneficio} com o cupom {cupom}, válido até {prazo}.\n\nÉ só chamar a gente por aqui 😊', cupom:'VOLTEI10', beneficio:'10% de desconto', prazo:'domingo' });
-  var queue = list.filter(function(c){ return waOk(c.tel); }), noTel = list.length - queue.length, head = queue[0] || list[0], opened = 0;
+  var viaApi = waConnected();
+  var recent = function(c){ return c.contatado && (Date.now() - c.contatado) < DIAS_ENTRE_CONTATOS * DAY; };
+  var queue = list.filter(function(c){ return waOk(c.tel) && !(viaApi && recent(c)); }), noTel = list.filter(function(c){ return !waOk(c.tel); }).length, pulados = viaApi ? list.filter(function(c){ return waOk(c.tel) && recent(c); }).length : 0, head = queue[0] || list[0], opened = 0;
+  var restam = viaApi && S.auth ? Math.max(0, S.auth.limite - S.auth.enviadosHoje) : Infinity;
   var bg = document.createElement('div'); bg.className = 'modal-bg';
-  var mainBtn = queue.length === 1 ? 'Abrir no WhatsApp' : (queue.length ? 'Começar envio para '+nf.format(queue.length)+' clientes' : 'Nenhum cliente com telefone válido');
+  var mainBtn = viaApi ? (queue.length ? 'Enviar pela Máquina para '+nf.format(Math.min(queue.length, restam))+' '+(Math.min(queue.length, restam) === 1 ? 'cliente' : 'clientes') : 'Nenhum cliente para enviar') : (queue.length === 1 ? 'Abrir no WhatsApp' : (queue.length ? 'Começar envio para '+nf.format(queue.length)+' clientes' : 'Nenhum cliente com telefone válido'));
+  if(viaApi && restam === 0) mainBtn = 'Limite de hoje atingido';
   bg.innerHTML =
     '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">'+
       '<div class="m-main" id="mMain">'+
-        '<div class="m-head"><div><h3 id="mTitle">Vamos trazer esses clientes de volta?</h3><p>'+(list.length > 1 ? nf.format(list.length)+' clientes selecionados' : esc(head.nome)+', '+daysOf(head)+' dias sem comprar')+(noTel ? ' · '+pl(noTel,'sem telefone válido','sem telefone válido') : '')+'</p></div>'+
+        '<div class="m-head"><div><h3 id="mTitle">Vamos trazer esses clientes de volta?</h3><p>'+(list.length > 1 ? nf.format(list.length)+' clientes selecionados' : esc(head.nome)+', '+daysOf(head)+' dias sem comprar')+(noTel ? ' · '+pl(noTel,'sem telefone válido','sem telefone válido') : '')+(pulados ? ' · '+pl(pulados,'pulado por ter sido contatado há menos de '+DIAS_ENTRE_CONTATOS+' dias','pulados por terem sido contatados há menos de '+DIAS_ENTRE_CONTATOS+' dias') : '')+'</p></div>'+
         '<button type="button" class="x" id="mX" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'+
         '<div class="f"><label for="mMsg">Mensagem</label><textarea id="mMsg" rows="7">'+esc(camp.msg)+'</textarea><span class="vars">Use <code>{nome}</code>, <code>{cupom}</code>, <code>{beneficio}</code> e <code>{prazo}</code>. Eles são trocados para cada cliente.</span></div>'+
         '<div class="frow"><div class="f"><label for="mCup">Cupom</label><input id="mCup" value="'+esc(camp.cupom)+'"></div><div class="f"><label for="mBen">Benefício</label><input id="mBen" value="'+esc(camp.beneficio)+'"></div></div>'+
         '<div class="f"><label for="mPra">Prazo</label><input id="mPra" value="'+esc(camp.prazo)+'"></div>'+
-        (queue.length === 1 ? '<a class="btn" id="mSend" href="#" target="_blank" rel="noopener">'+mainBtn+'</a>' : '<button type="button" class="btn" id="mSend"'+(queue.length ? '' : ' disabled')+'>'+mainBtn+'</button>')+
+        (viaApi ? '<div class="msg-warn" style="font-size:13.5px">A Máquina envia <b>uma mensagem por vez</b>, pelo WhatsApp do restaurante, com intervalo de 30 s a 1 min. Hoje ainda cabem <b>'+nf.format(restam)+'</b> de '+nf.format(S.auth.limite)+'. <b>Deixe esta tela aberta</b> até terminar.</div>' : '')+
+        (!viaApi && queue.length === 1 ? '<a class="btn" id="mSend" href="#" target="_blank" rel="noopener">'+mainBtn+'</a>' : '<button type="button" class="btn" id="mSend"'+(queue.length && restam > 0 ? '' : ' disabled')+'>'+mainBtn+'</button>')+
+        (viaApi && queue.length ? '<button type="button" class="linkbtn" id="mManual" style="justify-self:center">Prefiro abrir no WhatsApp e enviar na mão</button>' : '')+
       '</div>'+
       '<div class="m-side"><small>Prévia no WhatsApp</small><div class="wa-chat"><div class="wa-head"><i><svg viewBox="0 0 24 24" fill="#1F6E5B" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></i><div><b id="pvName"></b><span id="pvTel"></span></div></div><div class="bubble" id="pvMsg"></div></div></div>'+
     '</div>';
@@ -1142,17 +1399,56 @@ function openCampaign(list){
   function link(c){ return 'https://wa.me/' + c.tel + '?text=' + encodeURIComponent(fill(c)); }
   function preview(c){ $('pvName').textContent = c.nome; $('pvTel').textContent = waOk(c.tel) ? fmtPhone(c.tel) : 'telefone inválido'; $('pvMsg').innerHTML = esc(fill(c)) + '<span class="t">agora</span>'; }
   function readForm(){ if(!$('mMsg')) return; camp.msg = $('mMsg').value; camp.cupom = $('mCup').value; camp.beneficio = $('mBen').value; camp.prazo = $('mPra').value; lsSet(MSG_KEY, JSON.stringify(camp)); }
-  function sync(){ readForm(); preview(head); if(queue.length === 1) $('mSend').href = link(queue[0]); }
+  function sync(){ readForm(); preview(head); if(!viaApi && queue.length === 1) $('mSend').href = link(queue[0]); }
   ['mMsg','mCup','mBen','mPra'].forEach(function(id){ $(id).addEventListener('input', sync); }); sync();
-  function markSent(c){ c.contatado = Date.now(); delete S.selected[c.id]; opened++; save(); track('campaign_whatsapp_open'); }
+  function markSent(c){ c.contatado = Date.now(); delete S.selected[c.id]; opened++; save(); track(viaApi ? 'campaign_api_sent' : 'campaign_whatsapp_open'); }
+  var sendTimer = null, paused = false, stopped = false, limitHit = false, erros = 0;
   function finish(){
+    clearTimeout(sendTimer); stopped = true;
     if(opened) reportUsage('campanha', {mensagens:opened});
+    var pend = queue.length - opened - erros;
     $('mMain').innerHTML =
       '<div class="done-box"><div class="ok"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></div>'+
-      '<h3>'+(opened ? 'Pronto! '+pl(opened,'conversa aberta','conversas abertas')+'.' : 'Envio encerrado.')+'</h3>'+
-      '<p style="color:var(--ink2)">'+(opened ? 'Esses clientes ficaram marcados como <b>Contatado</b>. Confira no WhatsApp se todas as mensagens foram enviadas.' : 'Nenhuma conversa foi aberta.')+'</p>'+
+      '<h3>'+(viaApi ? (limitHit ? 'Limite de hoje atingido.' : (opened ? 'Pronto! '+pl(opened,'mensagem enviada','mensagens enviadas')+'.' : 'Envio encerrado.')) : (opened ? 'Pronto! '+pl(opened,'conversa aberta','conversas abertas')+'.' : 'Envio encerrado.'))+'</h3>'+
+      '<p style="color:var(--ink2)">'+(viaApi ? (opened ? pl(opened,'mensagem saiu','mensagens saíram')+' do WhatsApp do restaurante e '+(opened === 1 ? 'o cliente ficou marcado' : 'os clientes ficaram marcados')+' como <b>Contatado</b>. ' : '')+(limitHit && pend > 0 ? pl(pend,'cliente fica','clientes ficam')+' para amanhã: é a regra que protege o seu número.' : (erros ? pl(erros,'mensagem não saiu','mensagens não saíram')+'. Tente de novo mais tarde.' : 'Agora é responder quem responder 😉')) : (opened ? 'Esses clientes ficaram marcados como <b>Contatado</b>. Confira no WhatsApp se todas as mensagens foram enviadas.' : 'Nenhuma conversa foi aberta.'))+'</p>'+
       '<button type="button" class="btn dark" id="mDone">Voltar para a lista</button></div>';
     $('mDone').addEventListener('click', close);
+  }
+  function autoStep(i){
+    if(stopped) return;
+    if(i >= queue.length) return finish();
+    var c = queue[i]; preview(c);
+    $('mMain').innerHTML =
+      '<div class="m-head"><div><h3 id="mTitle">Enviando '+(i+1)+' de '+queue.length+'</h3><p>Pode deixar esta tela aberta e ir fazer outra coisa. A Máquina envia uma por vez.</p></div>'+
+      '<button type="button" class="x" id="mX2" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'+
+      '<div class="progress" aria-hidden="true" style="margin:0"><i style="width:'+(i / queue.length * 100)+'%"></i></div>'+
+      '<div class="wa-item"><span><b>'+esc(c.nome)+'</b><br><span class="tel">'+esc(fmtPhone(c.tel))+' · '+daysOf(c)+' dias sem comprar</span></span><span class="tag ct" id="qState">Enviando…</span></div>'+
+      '<div class="countdown" id="qCount" hidden></div>'+
+      '<p style="text-align:center;color:var(--ink2);font-size:14px" id="qInfo">Envios hoje: '+nf.format(S.auth.enviadosHoje)+' de '+nf.format(S.auth.limite)+'</p>'+
+      '<div class="step-nav"><button type="button" class="back" id="qPause">Pausar</button><button type="button" class="back" id="qStop">Encerrar envio</button></div>';
+    $('mX2').addEventListener('click', function(){ finish(); close(); });
+    $('qStop').addEventListener('click', finish);
+    $('qPause').addEventListener('click', function(){ paused = !paused; this.textContent = paused ? 'Continuar' : 'Pausar'; if(!paused && $('qCount') && !$('qCount').hidden) { /* retoma a contagem */ } });
+    api('enviar', {numero:c.tel, texto:fill(c)}).then(function(j){
+      if(stopped) return;
+      if(j.limite_atingido){ limitHit = true; return finish(); }
+      if(j.aguarde){ $('qState').textContent = 'Aguardando…'; sendTimer = setTimeout(function(){ autoStep(i); }, (j.aguarde + 1) * 1000); return; }
+      if(!j.ok){ erros++; $('qState').textContent = 'Não enviou'; $('qState').style.background = 'var(--bad-soft)'; $('qState').style.color = 'var(--bad)'; toast(j.erro || 'Não foi possível enviar para este cliente.'); sendTimer = setTimeout(function(){ autoStep(i + 1); }, 4000); return; }
+      markSent(c);
+      $('qState').textContent = 'Enviada ✓'; $('qState').style.background = 'var(--accent-soft)'; $('qState').style.color = 'var(--accent-text)';
+      $('qInfo').textContent = 'Envios hoje: '+nf.format(S.auth.enviadosHoje)+' de '+nf.format(S.auth.limite);
+      if(i + 1 >= queue.length){ sendTimer = setTimeout(finish, 900); return; }
+      if(S.auth.enviadosHoje >= S.auth.limite){ limitHit = true; sendTimer = setTimeout(finish, 900); return; }
+      var wait = 30 + Math.floor(Math.random() * 31);
+      $('qCount').hidden = false;
+      (function tick(){
+        if(stopped) return;
+        if(paused){ $('qCount').textContent = 'pausado'; sendTimer = setTimeout(tick, 1000); return; }
+        $('qCount').textContent = wait + 's';
+        if(wait <= 0) return autoStep(i + 1);
+        wait--; sendTimer = setTimeout(tick, 1000);
+      })();
+    });
   }
   function step(i){
     if(i >= queue.length) return finish();
@@ -1180,14 +1476,20 @@ function openCampaign(list){
     readForm();
     if(!camp.msg.trim()){ e.preventDefault(); toast('Escreva a mensagem.'); return; }
     if(!queue.length){ e.preventDefault(); return; }
-    track('campaign_prepared', {qtd:queue.length});
+    track('campaign_prepared', {qtd:queue.length, via: viaApi ? 'api' : 'manual'});
+    if(viaApi){ if(restam <= 0) return; autoStep(0); return; }
     if(queue.length === 1){ markSent(queue[0]); setTimeout(finish, 400); return; }
     step(0);
   });
+  if($('mManual')) $('mManual').addEventListener('click', function(){ readForm(); if(!camp.msg.trim()){ toast('Escreva a mensagem.'); return; } viaApi = false; track('campaign_prepared', {qtd:queue.length, via:'manual'}); if(queue.length === 1){ window.open(link(queue[0]), '_blank'); markSent(queue[0]); setTimeout(finish, 400); return; } step(0); });
 }
 
 track('app_open', {tem_base: !!(S.base && S.base.clients && S.base.clients.length)});
-render();
+if(apiOn() && lsGet(CODE_KEY)){
+  // já tem código salvo: confere no servidor e descobre se o WhatsApp está conectado
+  render();
+  entrar().then(function(j){ if(!j.ok){ if(j.codigo_invalido) renderLogin(j.erro); else toast(j.erro || 'Não foi possível falar com o servidor.'); return; } render(); });
+} else render();
 })();
 </script>
 
