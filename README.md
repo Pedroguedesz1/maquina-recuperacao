@@ -8,7 +8,7 @@ Produto de entrada da Click (R$ 49,90/mês). O restaurante assina, importa a pla
 |---|---|
 | `index.html` | LP de venda + demonstração (`index.html#maquina`) com dados fictícios |
 | `app.html` | **A ferramenta real**, entregue depois do pagamento |
-| `raio-x.html` | **Raio-X grátis**: cadastro + importação, mostra os números reais com nomes e telefones borrados e leva para a assinatura |
+| `raio-x.html` | **Raio-X grátis** em formato de quiz (4 perguntas + contato). A última tela leva ao caminho certo: conectar o WhatsApp (quem anota pedido por lá) ou enviar a planilha, com as instruções do sistema escolhido. Mostra os números reais com nomes e telefones borrados e leva para a assinatura. As respostas vão para `leads` (`canal`, `acompanha_inativos`, `ja_manda_mensagem`, `pedidos_faixa_dono`). |
 | `modelo-clientes.csv` | Planilha modelo para quem não tem sistema |
 
 ## Fluxo

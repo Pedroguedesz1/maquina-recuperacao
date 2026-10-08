@@ -450,6 +450,30 @@ tr.sel td{background:var(--accent-soft)}
 .tick-in{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink2);flex-wrap:wrap}
 .tick-in input{width:90px;font:600 14px/1 var(--mono);padding:8px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
 .confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--bad-soft);color:var(--bad);border-radius:14px;padding:10px 12px;font-size:14px;font-weight:600}
+/* ======= quiz do Raio-X ======= */
+.qz{max-width:620px;margin-inline:auto;display:grid;gap:18px}
+.qz-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;color:var(--ink2)}
+.qz-bar{height:8px;border-radius:99px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
+.qz-bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s ease}
+.qz h1{font-size:clamp(26px,4.6vw,36px);letter-spacing:-.02em}
+.qz .sub{color:var(--ink2);font-size:16px;margin-top:-8px}
+.qopts{display:grid;gap:10px}
+.qopt{display:flex;align-items:center;gap:14px;background:var(--surface);border-radius:18px;padding:16px 18px;box-shadow:inset 0 0 0 1.5px var(--line);font:700 16px/1.3 var(--font);color:var(--ink);text-align:left;cursor:pointer;border:0;transition:transform .12s,box-shadow .12s}
+.qopt:hover{box-shadow:inset 0 0 0 2px var(--accent-text);transform:translateY(-1px)}
+.qopt .em{width:42px;height:42px;border-radius:12px;background:var(--bg);display:grid;place-items:center;font-size:22px;flex:none}
+.qopt small{display:block;font-weight:500;color:var(--ink2);font-size:13.5px}
+.qstep{animation:rise .35s ease both;display:grid;gap:16px}
+.qback{background:none;border:0;font:700 14px var(--font);color:var(--ink2);cursor:pointer;padding:8px 0;justify-self:start}
+.ghost-num{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.ghost-num .kpi b{filter:blur(7px);user-select:none}
+.pathcard{background:var(--inv);color:var(--inv-ink);border-radius:22px;padding:22px;display:grid;gap:10px}
+.pathcard p{color:var(--inv-ink2);font-size:15px;margin:0}
+.pathcard b{font-size:20px}
+.pathcard ol{margin:0;padding-left:20px;display:grid;gap:4px;color:var(--inv-ink2);font-size:14.5px}
+.rx-sum{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:14px;color:var(--ink2);background:var(--surface);border-radius:14px;padding:10px 14px;box-shadow:inset 0 0 0 1px var(--line)}
+.rx-sum b{color:var(--ink)}
+@media (max-width:720px){.ghost-num{grid-template-columns:1fr}}
+
 /* ======= código de acesso, origem dos clientes e WhatsApp ======= */
 .login{max-width:460px;margin:24px auto 0;display:grid;gap:14px;text-align:center}
 .login h1{font-size:clamp(28px,4.4vw,38px)}
@@ -1005,7 +1029,7 @@ function importWA(){
     S.base = {restaurante: (S.auth && S.auth.nome) || lsGet(REST_KEY) || 'Meu restaurante', sistema:'WhatsApp', arquivo:'Conversas do WhatsApp', importadoEm:Date.now(), sample:false, clients:list, ticketPadrao:(S.base && S.base.ticketPadrao) || 45, porPedido:false, origem:'whatsapp', pedidosMes:null, ignoradas:0};
     save(); S.conn = null; S.view = null; S.selected = {}; S.filter = 'inativos'; S.limit = 50; S.q = '';
     track('import_done', {origem:'whatsapp', clientes:list.length}); reportUsage(RAIOX ? 'raio_x' : 'importou');
-    if(RAIOX){ var st0 = stats(), L0 = rxLead(); sbPost('leads', Object.assign({tipo:'raio_x', origem:'raio_x_whatsapp', nome:L0.nome||null, whatsapp:L0.whatsapp||null, restaurante:S.base.restaurante, canal:'WhatsApp', tamanho_base:String(st0.total), estimativa_inativos:st0.inativos, estimativa_potencial:Math.round(st0.pot), utm:rxUtm(), pedidos_faixa_dono:L0.pedidos||null}, volumeLead(null, L0.pedidos))); track('lead_captured', {origem:'raio_x_whatsapp'}); }
+    if(RAIOX){ var st0 = stats(), L0 = rxLead(); sbPost('leads', Object.assign({tipo:'raio_x', origem:'raio_x_whatsapp', nome:L0.nome||null, whatsapp:L0.whatsapp||null, restaurante:S.base.restaurante, canal:'WhatsApp', acompanha_inativos:L0.sabe||null, ja_manda_mensagem:L0.msg||null, tamanho_base:String(st0.total), estimativa_inativos:st0.inativos, estimativa_potencial:Math.round(st0.pot), utm:rxUtm(), pedidos_faixa_dono:L0.pedidos||null}, volumeLead(null, L0.pedidos))); track('lead_captured', {origem:'raio_x_whatsapp'}); }
     render(); window.scrollTo(0,0);
     toast(nf.format(j.total || 0) + ' conversas importadas do WhatsApp.');
   });
@@ -1026,7 +1050,54 @@ function render(){
   if(S.view === 'connect') return renderConnect();
   if(S.view === 'sheet') return renderImport();
   if(S.base && S.base.clients && S.base.clients.length) return renderDash();
+  if(RAIOX && !rxLead().done) return renderQuiz();
   return (apiOn() && !RAIOX) ? renderStart() : renderImport();
+}
+
+/* ---------- quiz do Raio-X ---------- */
+var QZ = [
+  {k:'sistema', h:'Como o seu restaurante recebe os pedidos?', s:'Escolha o principal.', o:[['💬','WhatsApp','Anoto os pedidos na conversa'],['🧾','Cardápio Web',''],['🤖','Anota AI',''],['🖥️','Saipos',''],['🛵','Só iFood',''],['📋','Outro sistema','']]},
+  {k:'pedidos', h:'Quantos pedidos por mês, mais ou menos?', s:'Chute. Não precisa ser exato.', o:PED_FAIXAS.map(function(f, i){ return [['🌱','🔥','🚀','🏆'][i], f.label, '', f.v]; })},
+  {k:'sabe', h:'Você sabe quantos clientes pararam de pedir?', s:'', o:[['✅','Sei, acompanho',''],['🤔','Mais ou menos',''],['😅','Não faço ideia','']]},
+  {k:'msg', h:'Você já manda mensagem para quem sumiu?', s:'', o:[['📲','Sim, de vez em quando',''],['⏳','Já tentei, mas parei',''],['❌','Nunca mandei','']]}
+];
+function rxSave(l){ lsSet(LEAD_KEY, JSON.stringify(l)); }
+function rxExport(sis){
+  return sis === 'Cardápio Web' ? 'No painel do Cardápio Web: <b>Relatórios → Clientes → Exportar</b>.' :
+         sis === 'Anota AI' ? 'No Anota AI: <b>Relatórios → Pedidos</b>, escolha os últimos 6 meses e exporte em Excel.' :
+         sis === 'Saipos' ? 'Na Saipos: <b>Relatórios → Vendas por período</b>, filtre os últimos meses e clique em <b>Exportar</b>.' :
+         'No seu sistema, procure em <b>Clientes</b> ou <b>Relatórios → Pedidos</b> a opção <b>Exportar</b> (Excel ou CSV).';
+}
+function renderQuiz(){
+  var root = $('root'), L = rxLead(), N = QZ.length + 1, i = L.step || 0;
+  function top(n){ return '<div class="qz-top"><span>Raio-X grátis</span><span>'+n+' de '+N+'</span></div><div class="qz-bar"><i style="width:'+(n / N * 100)+'%"></i></div>'; }
+  if(i < QZ.length){
+    var q = QZ[i];
+    root.innerHTML = '<div class="qz">'+top(i + 1)+'<div class="qstep"><h1>'+q.h+'</h1>'+(q.s ? '<p class="sub">'+q.s+'</p>' : '')+
+      '<div class="qopts">'+q.o.map(function(o, j){ return '<button type="button" class="qopt" data-i="'+j+'"><span class="em">'+o[0]+'</span><span>'+o[1]+(o[2] ? '<small>'+o[2]+'</small>' : '')+'</span></button>'; }).join('')+'</div>'+
+      (i ? '<button type="button" class="qback" id="qzBack">← Voltar</button>' : '')+'</div></div>';
+    root.querySelectorAll('.qopt').forEach(function(b){ b.addEventListener('click', function(){ var o = q.o[+b.getAttribute('data-i')]; L[q.k] = o[3] || o[1]; L.step = i + 1; rxSave(L); track('quiz_step', {passo:i + 1, campo:q.k}); renderQuiz(); window.scrollTo(0,0); }); });
+    if($('qzBack')) $('qzBack').addEventListener('click', function(){ L.step = i - 1; rxSave(L); renderQuiz(); });
+    return;
+  }
+  if(i === QZ.length){
+    root.innerHTML = '<div class="qz">'+top(N)+'<div class="qstep"><h1>Quase lá. Para quem vai o Raio-X?</h1><p class="sub">Usamos só para te mostrar o resultado e, se você quiser, continuar a conversa.</p>'+
+      '<div class="card" style="gap:12px" id="qzForm"><div class="f"><label for="rxNome">Seu nome</label><input id="rxNome" autocomplete="name" value="'+esc(L.nome || '')+'"></div><div class="f"><label for="rxZap">WhatsApp</label><input id="rxZap" type="tel" inputmode="tel" autocomplete="tel" placeholder="(61) 90000-0000" value="'+esc(L.whatsapp || '')+'"></div><div class="f"><label for="restName">Restaurante</label><input id="restName" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(L.restaurante || lsGet(REST_KEY) || '')+'"></div></div>'+
+      '<button type="button" class="btn" id="qzGo">Ver o meu Raio-X</button><button type="button" class="qback" id="qzBack">← Voltar</button></div></div>';
+    maskPhoneInput($('rxZap'));
+    $('qzBack').addEventListener('click', function(){ L.step = i - 1; rxSave(L); renderQuiz(); });
+    $('qzGo').addEventListener('click', function(){
+      L.nome = $('rxNome').value.trim(); L.whatsapp = $('rxZap').value; L.restaurante = $('restName').value.trim();
+      if(L.nome.length < 2 || L.whatsapp.replace(/\D/g,'').length < 10 || L.restaurante.length < 2){ $('qzForm').classList.add('invalid'); toast('Preencha nome, WhatsApp e restaurante.'); return; }
+      lsSet(REST_KEY, L.restaurante); L.step = i + 1; rxSave(L); track('lead_form', {origem:'quiz'}); renderQuiz(); window.scrollTo(0,0);
+    });
+    return;
+  }
+  // "Montando o seu Raio-X…" e vai para a tela do caminho (WhatsApp ou planilha)
+  root.innerHTML = '<div class="qz"><div class="qstep"><div class="qz-top"><span>Montando o seu Raio-X…</span></div><div class="qz-bar"><i id="qzLoad" style="width:8%"></i></div>'+
+    '<div class="ghost-num"><div class="kpi"><small>Clientes na base</small><b>1.284</b></div><div class="kpi"><small>Pararam de pedir</small><b>437</b></div><div class="kpi cash"><small>Receita parada</small><b>R$ 19.665</b></div></div>'+
+    '<p style="color:var(--ink2);text-align:center">Falta um passo para esses números serem os seus.</p></div></div>';
+  var w = 8, t = setInterval(function(){ w += 16; var el = $('qzLoad'); if(el) el.style.width = Math.min(100, w) + '%'; if(w >= 100){ clearInterval(t); setTimeout(function(){ L.done = true; rxSave(L); renderImport(); window.scrollTo(0,0); }, 300); } }, 200);
 }
 
 /* Raio-X pelo WhatsApp: cria o acesso provisório do lead e vai para a tela de conexão */
@@ -1049,14 +1120,21 @@ function renderImport(errMsg){
   var root = $('root'), hasOld = S.base && S.base.clients && S.base.clients.length;
   root.innerHTML =
   '<div class="imp">'+
-    (RAIOX ? '<div class="imp-head"><span class="eyebrow">Raio-X grátis</span><h1>Descubra quantos clientes o seu restaurante perdeu.</h1><p class="lead">'+(apiOn() ? 'Conecte o WhatsApp do restaurante ou envie a planilha do seu sistema. ' : 'Envie a planilha de clientes ou de pedidos do seu sistema. ')+'Em 2 minutos você vê quantos clientes pararam de pedir e quanto dinheiro isso representa. Grátis.</p></div>' :
+    (RAIOX ? (function(){
+        var L = rxLead(), sis = L.sistema || '', wa = sis === 'WhatsApp', ifood = sis === 'Só iFood', waOn = apiOn();
+        return '<div class="imp-head"><span class="eyebrow">Último passo</span><h1>'+(wa ? 'Sua base de clientes já está no seu WhatsApp.' : ifood ? 'O iFood não entrega o telefone dos seus clientes.' : sis && sis !== 'Outro sistema' ? 'Seus clientes estão no '+esc(sis)+'.' : 'Descubra quantos clientes o seu restaurante perdeu.')+'</h1></div>'+
+          '<div class="rx-sum"><span><b>'+esc(L.nome || '')+'</b> · '+esc(L.restaurante || '')+' · '+esc(L.whatsapp || '')+'</span><button type="button" class="linkbtn" id="rxEdit">Editar</button></div>'+
+          '<div class="ghost-num"><div class="kpi"><small>Clientes na base</small><b>1.284</b></div><div class="kpi"><small>Pararam de pedir</small><b>437</b></div><div class="kpi cash"><small>Receita parada</small><b>R$ 19.665</b></div></div>'+
+          '<input id="rxNome" type="hidden" value="'+esc(L.nome || '')+'"><input id="rxZap" type="hidden" value="'+esc(L.whatsapp || '')+'"><input id="restName" type="hidden" value="'+esc(L.restaurante || '')+'">'+
+          (waOn && (wa || ifood) ? '<div class="pathcard"><b>'+(ifood ? 'Mas o seu WhatsApp entrega.' : 'Conecte o WhatsApp do restaurante')+'</b><p>'+(ifood ? 'Conecte o WhatsApp do restaurante e o Raio-X mostra quem sumiu entre os clientes que falam com você por lá.' : 'É igual a usar o WhatsApp no computador. O Raio-X puxa sozinho todo mundo que já conversou com você. Leva 1 minuto.')+'</p><ol><li>Toque no botão abaixo</li><li>Leia o QR code ou digite o código no celular</li><li>Pronto: os números acima viram os seus</li></ol><button type="button" class="btn" id="rxWa">Conectar meu WhatsApp</button></div>'+
+            '<p style="text-align:center;font-weight:700;color:var(--ink2);margin:-4px 0">'+(ifood ? 'ou envie a planilha do seu cardápio digital' : 'ou, se preferir, envie uma planilha')+'</p>'
+          : '<div class="pathcard"><b>Exporte a planilha'+(sis && sis !== 'Outro sistema' ? ' do '+esc(sis) : ' do seu sistema')+' e envie aqui</b><p>'+rxExport(sis)+'</p><ol><li>Exporte a planilha (Excel ou CSV)</li><li>Arraste aqui embaixo</li><li>Pronto: os números acima viram os seus</li></ol></div>'+
+            (waOn ? '<p style="text-align:center;font-size:14px;color:var(--ink2);margin:-4px 0">Também anota pedido pelo WhatsApp? <button type="button" class="linkbtn" id="rxWa">Conecte o WhatsApp</button> e o Raio-X junta os dois.</p>' : ''));
+      })() :
     '<div class="imp-head"><span class="eyebrow">'+(hasOld ? 'Atualizar base' : 'Passo 1 de 2')+'</span><h1>Importe seus clientes e descubra quem sumiu.</h1>'+
     '<p class="lead">Envie a planilha de clientes ou de pedidos do seu restaurante. A Máquina separa quem está ativo e quem parou de pedir.</p></div>')+
     (errMsg ? '<div class="msg-err">'+errMsg+'</div>' : '')+
-    (RAIOX ? '<div class="rx-lead"><div class="f"><label for="rxNome">Seu nome</label><input id="rxNome" autocomplete="name" value="'+esc(rxLead().nome||'')+'"></div><div class="f"><label for="rxZap">WhatsApp</label><input id="rxZap" type="tel" inputmode="tel" autocomplete="tel" placeholder="(61) 90000-0000" value="'+esc(rxLead().whatsapp||'')+'"></div><div class="f"><label for="restName">Restaurante</label><input id="restName" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(S.base && S.base.restaurante || lsGet(REST_KEY) || '')+'"></div><div class="f"><label for="rxPed">Pedidos por mês, mais ou menos</label><select id="rxPed"><option value="">Escolha</option>'+PED_FAIXAS.map(function(o){ return '<option value="'+o.v+'"'+(rxLead().pedidos === o.v ? ' selected' : '')+'>'+o.label+'</option>'; }).join('')+'</select></div></div>' :
-    '<div class="f" style="max-width:420px"><label for="restName">Nome do restaurante</label><input id="restName" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(S.base && S.base.restaurante || lsGet(REST_KEY) || '')+'"></div>')+
-    (RAIOX && apiOn() ? '<button type="button" class="opt-card main" id="rxWa" style="width:100%"><span class="badge">Mais fácil</span><span class="ic"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 12 12 0 0 0 4.6 4c1.7.7 2.3.8 3.2.7a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg></span><b>Conectar o WhatsApp do restaurante</b><p>Anota pedido pelo WhatsApp? O Raio-X puxa sozinho todo mundo que já conversou com você. Sem planilha.</p></button>'+
-     '<p style="text-align:center;font-weight:700;color:var(--ink2);margin:-4px 0">ou</p>' : '')+
+    (RAIOX ? '' : '<div class="f" style="max-width:420px"><label for="restName">Nome do restaurante</label><input id="restName" autocomplete="organization" placeholder="Ex.: Burger da Vila" value="'+esc(S.base && S.base.restaurante || lsGet(REST_KEY) || '')+'"></div>')+
     '<label class="drop" id="drop" for="fileIn">'+
       '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></span>'+
       '<b>Arraste sua planilha aqui</b><p>ou toque para escolher o arquivo · Excel (.xlsx) ou CSV</p>'+
@@ -1087,7 +1165,7 @@ function renderImport(errMsg){
   ['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('over'); }); });
   ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
   drop.addEventListener('drop', function(e){ var f = e.dataTransfer && e.dataTransfer.files[0]; if(f) readFile(f); });
-  if(RAIOX){ ['rxNome','rxZap'].forEach(function(id){ $(id).addEventListener('input', function(){ var l = rxLead(); l[id === 'rxNome' ? 'nome' : 'whatsapp'] = this.value; lsSet(LEAD_KEY, JSON.stringify(l)); }); }); maskPhoneInput($('rxZap')); $('rxPed').addEventListener('change', function(){ var l = rxLead(); l.pedidos = this.value; lsSet(LEAD_KEY, JSON.stringify(l)); }); }
+  if($('rxEdit')) $('rxEdit').addEventListener('click', function(){ var l = rxLead(); l.done = false; l.step = 0; rxSave(l); renderQuiz(); window.scrollTo(0,0); });
   if($('rxWa')) $('rxWa').addEventListener('click', rxWhatsApp);
   if($('useSample')) $('useSample').addEventListener('click', function(){ track('import_sample'); startMap(sampleRows(), 'dados-de-exemplo.csv', true); });
   $('dlModelo').addEventListener('click', function(){ track('template_download'); });
@@ -1129,7 +1207,7 @@ function startMap(rows, fileName, sample){
   while(headers.length < w) headers.push('Coluna ' + (headers.length + 1));
   var gm = guess(headers, body);
   if(gm.data == null || dateScore(body, gm.data).ok === 0){ var used = {}; Object.keys(gm).forEach(function(k){ if(k !== 'data') used[gm[k]] = true; }); var bd = bestDateCol(headers, body, used); if(bd >= 0) gm.data = bd; }
-  S.pending = {headers:headers, rows:body, file:fileName, sample:sample, map:gm, restaurante: rest || (S.base && S.base.restaurante) || '', mode:S.mode};
+  S.pending = {headers:headers, rows:body, file:fileName, sample:sample, map:gm, restaurante: rest || (S.base && S.base.restaurante) || '', mode:S.mode, sistema: RAIOX && ['Cardápio Web','Anota AI','Saipos'].indexOf(rxLead().sistema) > -1 ? rxLead().sistema : undefined};
   S.view = 'map'; render(); window.scrollTo(0,0);
 }
 
@@ -1199,7 +1277,7 @@ function runImport(){
   save();
   track('import_done', {clientes:res.clients.length, por_pedido:res.rowsPerOrder, amostra:!!P.sample});
   reportUsage(RAIOX ? 'raio_x' : 'importou');
-  if(RAIOX && !P.sample){ var st0 = stats(), L0 = rxLead(); sbPost('leads', Object.assign({tipo:'raio_x', origem:'raio_x', nome:L0.nome||null, whatsapp:L0.whatsapp||null, restaurante:S.base.restaurante, canal:S.base.sistema||null, tamanho_base:String(st0.total), estimativa_inativos:st0.inativos, estimativa_potencial:Math.round(st0.pot), utm:rxUtm(), pedidos_faixa_dono:L0.pedidos||null}, volumeLead(S.base.pedidosMes, L0.pedidos))); track('lead_captured', {origem:'raio_x'}); }
+  if(RAIOX && !P.sample){ var st0 = stats(), L0 = rxLead(); sbPost('leads', Object.assign({tipo:'raio_x', origem:'raio_x', nome:L0.nome||null, whatsapp:L0.whatsapp||null, restaurante:S.base.restaurante, canal:S.base.sistema||L0.sistema||null, acompanha_inativos:L0.sabe||null, ja_manda_mensagem:L0.msg||null, tamanho_base:String(st0.total), estimativa_inativos:st0.inativos, estimativa_potencial:Math.round(st0.pot), utm:rxUtm(), pedidos_faixa_dono:L0.pedidos||null}, volumeLead(S.base.pedidosMes, L0.pedidos))); track('lead_captured', {origem:'raio_x'}); }
   S.view = null; S.pending = null; S.selected = {}; S.filter = 'inativos'; S.limit = 50; S.q = '';
   render(); window.scrollTo(0,0);
   toast(nf.format(res.clients.length) + ' clientes importados.');
