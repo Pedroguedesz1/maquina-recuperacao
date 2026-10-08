@@ -891,14 +891,15 @@ var S = {
 };
 
 /* ---------- código de acesso e ponte com o WhatsApp (função "wa" no Supabase) ---------- */
-var CODE_KEY = 'click_maquina_codigo_v1';
+var CODE_KEY = 'click_maquina_codigo_v1', WA_KEY = 'click_maquina_wa_ok_v1';
+function waCaiu(){ return apiOn() && !RAIOX && lsGet(WA_KEY) === '1' && !(S.wa && S.wa.status === 'connected'); }
 function apiOn(){ return !!CONFIG.apiUrl; }
 function api(acao, data){
   var body = Object.assign({codigo: lsGet(CODE_KEY) || '', acao: acao}, data || {});
   return fetch(CONFIG.apiUrl, {method:'POST', headers:{'Content-Type':'application/json', 'apikey':CONFIG.supabaseKey}, body:JSON.stringify(body)})
     .then(function(r){ return r.json().catch(function(){ return {ok:false, erro:'O servidor respondeu de um jeito inesperado. Tente de novo.'}; }); })
     .catch(function(){ return {ok:false, erro:'Sem conexão com o servidor. Confira sua internet e tente de novo.'}; })
-    .then(function(j){ if(j && j.codigo_invalido){ lsSet(CODE_KEY, ''); S.auth = null; } if(j && j.expirado){ S.wa = {status:'disconnected', numero:null}; } if(j && j.wa) S.wa = j.wa; if(j && j.enviados_hoje != null && S.auth){ S.auth.enviadosHoje = j.enviados_hoje; if(j.limite) S.auth.limite = j.limite; } return j; });
+    .then(function(j){ if(j && j.codigo_invalido){ lsSet(CODE_KEY, ''); S.auth = null; } if(j && j.expirado){ S.wa = {status:'disconnected', numero:null}; } if(j && j.desconectado){ S.wa = {status:'disconnected', numero:S.wa && S.wa.numero}; } if(j && j.wa){ S.wa = j.wa; if(j.wa.status === 'connected') lsSet(WA_KEY, '1'); } if(j && j.enviados_hoje != null && S.auth){ S.auth.enviadosHoje = j.enviados_hoje; if(j.limite) S.auth.limite = j.limite; } return j; });
 }
 function entrar(){
   return api('entrar').then(function(j){
@@ -1445,6 +1446,7 @@ function renderDash(){
     (apiOn() ? '<div class="wa-strip"><span><i class="dot'+(waConnected() ? ' on' : '')+'"></i>'+(waConnected() ? 'WhatsApp conectado'+(S.wa.numero ? ' · '+esc(fmtPhone(S.wa.numero)) : '') : 'WhatsApp não conectado')+'</span>'+
       (waConnected() && S.auth ? '<span>Envios hoje: <b>'+nf.format(S.auth.enviadosHoje)+'</b> de '+nf.format(S.auth.limite)+'<span class="meter"><i style="width:'+Math.min(100, S.auth.enviadosHoje / S.auth.limite * 100)+'%"></i></span></span>' : '')+
       '<span class="cta-row">'+(waConnected() ? '<button type="button" class="btn ghost sm" id="waSync">Atualizar do WhatsApp</button>' : '<button type="button" class="btn sm" id="waConn">Conectar WhatsApp</button>')+(RAIOX ? '' : '<button type="button" class="linkbtn" id="rulesBtn">Regras para proteger seu número</button>')+'</span></div>' : '')+
+    (waCaiu() ? '<div class="msg-err" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between"><span>O WhatsApp desconectou da Máquina (celular desligado, sem internet ou sessão encerrada). Até reconectar, não dá para atualizar a base nem enviar mensagens.</span><button type="button" class="btn sm" id="waReconn">Reconectar agora</button></div>' : '')+
     (!RAIOX && S.auth && S.auth.plano === 'raiox' ? '<div class="msg-warn">Seu acesso está sendo liberado pela Click. Você já pode ver seus clientes; o envio de mensagens é liberado em instantes após a confirmação do pagamento.</div>' : '')+
     '<div class="dash-head"><div><span class="eyebrow">'+esc(B.restaurante)+'</span><h2>'+(st.inativos ? '<span class="hl">'+pl(st.inativos,'cliente','clientes')+'</span> '+(st.inativos===1?'parou':'pararam')+' de pedir.' : 'Nenhum cliente parado há mais de 15 dias.')+'</h2>'+
       '<p>'+nf.format(st.total)+' clientes na base'+(st.nunca ? ' · <b>'+nf.format(st.nunca)+'</b> cadastrados que nunca pediram (veja a faixa <b>Nunca pediram</b>)' : '')+(B.ignoradas ? ' · '+pl(B.ignoradas,'linha ignorada','linhas ignoradas')+' por falta de nome, telefone ou data' : '')+(B.comPedidoSemData ? ' · <b style="color:var(--bad)">'+pl(B.comPedidoSemData,'cliente tem pedidos mas veio sem data do último pedido','clientes têm pedidos mas vieram sem data do último pedido')+'</b> (confira a exportação do sistema)' : '')+(B.origem === 'whatsapp' ? ' · a data do último pedido é a da <b>última conversa</b> no WhatsApp' : '')+'.</p></div></div>'+
@@ -1487,6 +1489,7 @@ function renderDash(){
   $('upSpec').addEventListener('click', function(){ track('click_whatsapp', {origem:'app'}); });
   $('reImp').addEventListener('click', function(){ S.mode = 'base'; if(apiOn()){ S.view = null; renderStart(); } else renderImport(); window.scrollTo(0,0); });
   if($('waConn')) $('waConn').addEventListener('click', function(){ S.view = 'connect'; render(); window.scrollTo(0,0); });
+  if($('waReconn')) $('waReconn').addEventListener('click', function(){ S.conn = null; S.view = 'connect'; render(); window.scrollTo(0,0); });
   if($('waSync')) $('waSync').addEventListener('click', function(){ this.disabled = true; this.textContent = 'Buscando…'; importWA(); });
   if($('rulesBtn')) $('rulesBtn').addEventListener('click', openRules);
   if($('addTel')) $('addTel').addEventListener('click', function(){ S.mode = 'phones'; $('fileIn').click(); });
@@ -1655,6 +1658,7 @@ function openCampaign(list){
     api('enviar', {numero:c.tel, texto:fill(c)}).then(function(j){
       if(stopped) return;
       if(j.limite_atingido){ limitHit = true; return finish(); }
+      if(j.desconectado){ erros++; stopped = true; clearTimeout(sendTimer); $('mMain').innerHTML = '<div class="done-box"><h3>O WhatsApp desconectou.</h3><p style="color:var(--ink2)">'+(opened ? pl(opened,'mensagem foi enviada','mensagens foram enviadas')+' antes de cair. ' : '')+'Reconecte o WhatsApp do restaurante e continue de onde parou: quem já recebeu ficou marcado como Contatado.</p><button type="button" class="btn" id="mReconn">Reconectar WhatsApp</button></div>'; $('mReconn').addEventListener('click', function(){ if(opened) reportUsage('campanha', {mensagens:opened}); opened = 0; close(); S.conn = null; S.view = 'connect'; render(); window.scrollTo(0,0); }); return; }
       if(j.aguarde){ $('qState').textContent = 'Aguardando…'; sendTimer = setTimeout(function(){ autoStep(i); }, (j.aguarde + 1) * 1000); return; }
       if(!j.ok){ erros++; $('qState').textContent = 'Não enviou'; $('qState').style.background = 'var(--bad-soft)'; $('qState').style.color = 'var(--bad)'; toast(j.erro || 'Não foi possível enviar para este cliente.'); sendTimer = setTimeout(function(){ autoStep(i + 1); }, 4000); return; }
       markSent(c);
