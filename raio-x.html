@@ -441,6 +441,8 @@ tr.sel td{background:var(--accent-soft)}
 .tel{font-family:var(--mono);font-size:12.5px;color:var(--ink2)}
 .tag.ok{background:var(--accent-soft);color:var(--accent-text)}
 .tag.ct{background:#E3ECFB;color:#2A55A5}
+.tag.nv{background:#EEEAFE;color:#5B47C7}
+.tag.nv::before{background:#8B7CF6}
 .rec.wa{background:#25D366;color:#0A2D14;text-decoration:none;display:inline-block}
 .rec.wa:hover{background:#1FBF5B}
 .rec.off{background:var(--bg2);color:var(--ink3);cursor:not-allowed}
@@ -633,7 +635,7 @@ function fmtPhone(d){
   var m = d.match(/^55(\d{2})(\d{4,5})(\d{4})$/);
   return m ? '('+m[1]+') '+m[2]+'-'+m[3] : '+'+d;
 }
-function normName(s){ return String(s||'').trim().replace(/\s+/g,' '); }
+function normName(s){ return String(s||'').replace(/[\u200B-\u200F\uFEFF\u00A0]/g,' ').trim().replace(/\s+/g,' '); }
 function keyName(s){ return normName(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
 
 /* ---------- leitura de CSV ---------- */
@@ -776,7 +778,12 @@ function aggregate(rows, map){
     if(dt == null && map.dias != null){ var dv = r[map.dias], dn = typeof dv === 'number' ? dv : parseFloat(String(dv).replace(',', '.')); if(isFinite(dn) && dn >= 0 && dn <= 5000) dt = today0() - Math.round(dn) * DAY; }
     if(!nome && !tel){ noName++; return; }
     if(/^(total|totais|subtotal|soma)\b/i.test(nome) && !tel){ skipped++; return; }
-    if(dt == null){ skipped++; var qv = map.qtd != null ? parseMoney(r[map.qtd]) : null; if(qv != null && qv > 0) comPedidoSemData++; else if(qv === 0 || (map.qtd != null && (r[map.qtd] === '' || r[map.qtd] == null))) semPedido++; return; }
+    if(dt == null){
+      var qv = map.qtd != null ? parseMoney(r[map.qtd]) : null;
+      if(qv != null && qv > 0){ skipped++; comPedidoSemData++; return; }
+      if(map.qtd != null && (qv === 0 || r[map.qtd] === '' || r[map.qtd] == null) && waOk(tel)){ var kn = 'n' + tel; if(!byKey[kn]) byKey[kn] = {nome:nome || fmtPhone(tel), tel:tel, ultimo:null, nunca:true, linhas:0, qtd:0, qtdCol:true, soma:0, nVal:0}; semPedido++; return; }
+      skipped++; return;
+    }
     dates.push(dt);
     var key = tel && tel.length >= 10 ? 't' + tel : 'n' + keyName(nome);
     var val = map.valor != null ? parseMoney(r[map.valor]) : null;
@@ -794,9 +801,9 @@ function aggregate(rows, map){
   });
   var list = Object.keys(byKey).map(function(k, i){
     var c = byKey[k];
-    return {id:'c'+i, nome:c.nome, tel:c.tel, ultimo:c.ultimo, pedidos: c.qtdCol ? Math.round(c.qtd) : (map.qtd != null ? null : c.linhas), ticket: c.nVal ? Math.round(c.soma / c.nVal * 100) / 100 : null, contatado:null};
+    return {id:'c'+i, nome:c.nome, tel:c.tel, ultimo:c.ultimo, nunca:!!c.nunca, pedidos: c.nunca ? 0 : (c.qtdCol ? Math.round(c.qtd) : (map.qtd != null ? null : c.linhas)), ticket: c.nVal ? Math.round(c.soma / c.nVal * 100) / 100 : null, contatado:null};
   });
-  if(map.qtd == null && perRow === 0) list.forEach(function(c){ c.pedidos = null; });
+  if(map.qtd == null && perRow === 0) list.forEach(function(c){ if(!c.nunca) c.pedidos = null; });
   return {clients:list, skipped:skipped, noName:noName, rowsPerOrder: perRow > 0, pedidosMes: perRow > 0 ? ordersPerMonth(dates) : null, semPedido:semPedido, comPedidoSemData:comPedidoSemData};
 }
 
@@ -1055,12 +1062,14 @@ function importWA(){
 }
 
 function status(dias){
+  if(dias == null) return {k:'nunca', c:'nv', t:'Nunca pediu'};
   if(dias < 15) return {k:'ativo', c:'ok', t:'Ativo'};
   if(dias < 30) return {k:'15', c:'at', t:'Atenção'};
   if(dias < 60) return {k:'30', c:'in', t:'Inativo'};
   return {k:'60', c:'lo', t:'Perdido'};
 }
-function daysOf(c){ return Math.max(0, Math.round((today0() - c.ultimo) / DAY)); }
+function daysOf(c){ return c.ultimo == null ? null : Math.max(0, Math.round((today0() - c.ultimo) / DAY)); }
+function diasTxt(c){ var d = daysOf(c); return d == null ? 'nunca pediu' : d + ' dias sem comprar'; }
 
 /* ================= TELAS ================= */
 function render(){
@@ -1301,7 +1310,7 @@ function runImport(){
   }
   var res = aggregate(P.rows, P.map);
   if(!res.clients.length) return renderMap('Nenhuma linha teve uma data válida na coluna escolhida. Confira se escolheu a coluna certa. As datas precisam estar como 25/09/2026 ou 2026-09-25.');
-  S.base = {restaurante: (P.restaurante || '').trim() || 'Meu restaurante', sistema: P.sistema || null, arquivo:P.file, importadoEm:Date.now(), sample:!!P.sample, clients:res.clients, ticketPadrao:45, porPedido:res.rowsPerOrder, pedidosMes:res.pedidosMes, ignoradas:res.skipped + res.noName, semPedido:res.semPedido, comPedidoSemData:res.comPedidoSemData};
+  S.base = {restaurante: (P.restaurante || '').trim() || 'Meu restaurante', sistema: P.sistema || null, arquivo:P.file, importadoEm:Date.now(), sample:!!P.sample, clients:res.clients, ticketPadrao:45, porPedido:res.rowsPerOrder, pedidosMes:res.pedidosMes, ignoradas:res.skipped + res.noName, comPedidoSemData:res.comPedidoSemData};
   var old = load();
   if(old && old.clients && !P.sample){
     var sent = {}; old.clients.forEach(function(c){ if(c.contatado) sent[(c.tel || '') + '|' + keyName(c.nome)] = c.contatado; });
@@ -1325,9 +1334,10 @@ function runImport(){
 
 /* ---------- painel ---------- */
 function stats(){
-  var B = S.base, s = {total:B.clients.length, ativo:0, d15:0, d30:0, d60:0, umPedido:0, pot:0, semTel:0, contatados:0, temTicket:false, temPedidos:false};
+  var B = S.base, s = {total:B.clients.length, ativo:0, d15:0, d30:0, d60:0, umPedido:0, pot:0, semTel:0, contatados:0, temTicket:false, temPedidos:false, nunca:0};
   B.clients.forEach(function(c){
     var d = daysOf(c), st = status(d).k;
+    if(st === 'nunca'){ s.nunca++; if(c.contatado) s.contatados++; return; }
     if(st === 'ativo') s.ativo++; else if(st === '15') s.d15++; else if(st === '30') s.d30++; else s.d60++;
     if(c.ticket != null) s.temTicket = true;
     if(c.pedidos != null) s.temPedidos = true;
@@ -1336,12 +1346,15 @@ function stats(){
     if(c.contatado) s.contatados++;
   });
   s.inativos = s.d15 + s.d30 + s.d60;
+  s.total = s.total - s.nunca; // clientes que já pediram
   return s;
 }
 function visible(){
   var f = S.filter, q = keyName(S.q), qd = S.q.replace(/\D/g,'');
   var l = S.base.clients.filter(function(c){
     var d = daysOf(c);
+    if(f === 'nunca') return !!c.nunca && (!q || keyName(c.nome).indexOf(q) > -1 || (qd.length >= 3 && (c.tel || '').indexOf(qd) > -1));
+    if(c.nunca) return false;
     if(f === 'inativos' && d < 15) return false;
     if(f === '15' && (d < 15 || d >= 30)) return false;
     if(f === '30' && (d < 30 || d >= 60)) return false;
@@ -1356,7 +1369,7 @@ function visible(){
   l.sort(function(a, b){
     if(s === 'ticket') return (b.ticket != null ? b.ticket : tp) - (a.ticket != null ? a.ticket : tp);
     if(s === 'pedidos') return (b.pedidos || 0) - (a.pedidos || 0);
-    return a.ultimo - b.ultimo;
+    return (a.ultimo || 0) - (b.ultimo || 0);
   });
   return l;
 }
@@ -1369,6 +1382,7 @@ function renderDash(){
   var filters = [['inativos','Todos inativos'],['15','15 a 29 dias'],['30','30 a 59 dias'],['60','60+ dias'],['nao','Não contatados']];
   if(st.temPedidos && st.umPedido) filters.push(['um','Pediram só 1 vez']);
   filters.push(['ativos','Ativos']);
+  if(st.nunca) filters.push(['nunca','Nunca pediram ('+nf.format(st.nunca)+')']);
   root.classList.toggle('rx', RAIOX);
   root.innerHTML =
   '<div class="dash">'+
@@ -1380,10 +1394,11 @@ function renderDash(){
       '<span class="cta-row">'+(waConnected() ? '<button type="button" class="btn ghost sm" id="waSync">Atualizar do WhatsApp</button>' : '<button type="button" class="btn sm" id="waConn">Conectar WhatsApp</button>')+(RAIOX ? '' : '<button type="button" class="linkbtn" id="rulesBtn">Regras para proteger seu número</button>')+'</span></div>' : '')+
     (!RAIOX && S.auth && S.auth.plano === 'raiox' ? '<div class="msg-warn">Seu acesso está sendo liberado pela Click. Você já pode ver seus clientes; o envio de mensagens é liberado em instantes após a confirmação do pagamento.</div>' : '')+
     '<div class="dash-head"><div><span class="eyebrow">'+esc(B.restaurante)+'</span><h2>'+(st.inativos ? '<span class="hl">'+pl(st.inativos,'cliente','clientes')+'</span> '+(st.inativos===1?'parou':'pararam')+' de pedir.' : 'Nenhum cliente parado há mais de 15 dias.')+'</h2>'+
-      '<p>'+nf.format(st.total)+' clientes na base'+(B.ignoradas ? ' · '+(B.semPedido ? pl(B.semPedido,'cadastro sem nenhum pedido','cadastros sem nenhum pedido')+(B.ignoradas - B.semPedido - (B.comPedidoSemData||0) > 0 ? ' e '+pl(B.ignoradas - B.semPedido - (B.comPedidoSemData||0),'linha sem nome ou data','linhas sem nome ou data') : '') : pl(B.ignoradas,'linha ignorada','linhas ignoradas')+' por falta de nome ou data')+(B.comPedidoSemData ? ' · <b style="color:var(--bad)">'+pl(B.comPedidoSemData,'cliente tem pedidos mas veio sem data do último pedido','clientes têm pedidos mas vieram sem data do último pedido')+'</b> (confira a exportação do sistema)' : '') : '')+(B.origem === 'whatsapp' ? ' · a data do último pedido é a da <b>última conversa</b> no WhatsApp' : '')+'.</p></div></div>'+
+      '<p>'+nf.format(st.total)+' clientes na base'+(st.nunca ? ' · <b>'+nf.format(st.nunca)+'</b> cadastrados que nunca pediram (veja a faixa <b>Nunca pediram</b>)' : '')+(B.ignoradas ? ' · '+pl(B.ignoradas,'linha ignorada','linhas ignoradas')+' por falta de nome, telefone ou data' : '')+(B.comPedidoSemData ? ' · <b style="color:var(--bad)">'+pl(B.comPedidoSemData,'cliente tem pedidos mas veio sem data do último pedido','clientes têm pedidos mas vieram sem data do último pedido')+'</b> (confira a exportação do sistema)' : '')+(B.origem === 'whatsapp' ? ' · a data do último pedido é a da <b>última conversa</b> no WhatsApp' : '')+'.</p></div></div>'+
     (RAIOX ? '<div class="rx-lock"><span class="ic"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"9\" rx=\"2\"/><path d=\"M8 11V8a4 4 0 0 1 8 0v3\"/></svg></span><div><b>Este é o seu Raio-X gratuito.</b><span>Para ver os nomes e telefones de quem sumiu e mandar a mensagem de volta pelo WhatsApp, libere a Máquina completa.</span><span class="price">R$ 49,90/mês · cancele quando quiser</span></div><a class="btn" href="#" data-unlock="banner">Liberar nomes e mensagens</a></div>' : '')+
     '<div class="kpis">'+
-      '<div class="kpi"><small>Clientes na base</small><b>'+nf.format(st.total)+'</b><em>'+(B.porPedido ? 'juntados a partir dos pedidos' : 'importados')+'</em></div>'+
+      '<div class="kpi"><small>Clientes na base</small><b>'+nf.format(st.total)+'</b><em>'+(B.porPedido ? 'juntados a partir dos pedidos' : (st.nunca ? 'já pediram pelo menos 1 vez' : 'importados'))+'</em></div>'+
+      (st.nunca ? '<div class="kpi"><small><i style="background:#8B7CF6"></i>Nunca pediram</small><b>'+nf.format(st.nunca)+'</b><em>cadastrados com WhatsApp, sem pedido</em></div>' : '')+
       '<div class="kpi"><small><i style="background:var(--accent)"></i>Ativos</small><b>'+nf.format(st.ativo)+'</b><em>pediram há menos de 15 dias</em></div>'+
       '<div class="kpi"><small><i style="background:#E9B949"></i>15 a 29 dias</small><b>'+nf.format(st.d15)+'</b><em>'+pct(st.d15)+' da base</em></div>'+
       '<div class="kpi"><small><i style="background:#E0823C"></i>30 a 59 dias</small><b>'+nf.format(st.d30)+'</b><em>'+pct(st.d30)+' da base</em></div>'+
@@ -1451,14 +1466,14 @@ function rows(){
     var d = daysOf(c), s = status(d), on = !!S.selected[c.id];
     return '<tr class="'+(on ? 'sel' : '')+'"><td class="ck"><input type="checkbox" data-ck="'+c.id+'" aria-label="Selecionar '+esc(c.nome)+'"'+(on ? ' checked' : '')+'></td>'+
       '<td><span class="who">'+esc(RAIOX ? maskName(c.nome) : c.nome)+'</span><span class="tel">'+telTxt(c)+'</span></td>'+
-      '<td class="n">'+fmtDate(c.ultimo)+'<br><span class="tel">'+d+' dias</span></td>'+
+      '<td class="n">'+(c.nunca ? '<span style="color:var(--ink3)">—</span><br><span class="tel">sem pedido</span>' : fmtDate(c.ultimo)+'<br><span class="tel">'+d+' dias</span>')+'</td>'+
       (st.temPedidos ? '<td class="n">'+(c.pedidos != null ? c.pedidos : '—')+'</td>' : '')+
       '<td class="n">'+tick(c)+'</td><td>'+tags(c, s)+'</td><td>'+action(c)+'</td></tr>';
   }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--ink2);padding:24px">Nenhum cliente neste filtro.</td></tr>';
   $('cm').innerHTML = shown.map(function(c){
     var d = daysOf(c), s = status(d), on = !!S.selected[c.id];
     return '<div class="cm'+(on ? ' sel' : '')+'"><input type="checkbox" data-ck="'+c.id+'" aria-label="Selecionar '+esc(c.nome)+'"'+(on ? ' checked' : '')+'>'+
-      '<div><span class="who">'+esc(RAIOX ? maskName(c.nome) : c.nome)+'</span><span class="meta">'+d+' dias · '+(c.ticket != null ? brl0.format(c.ticket) : 'sem valor')+(c.pedidos != null ? ' · '+c.pedidos+' ped.' : '')+'</span><br><span class="tel">'+telTxt(c)+'</span></div>'+
+      '<div><span class="who">'+esc(RAIOX ? maskName(c.nome) : c.nome)+'</span><span class="meta">'+(c.nunca ? 'nunca pediu' : d+' dias')+' · '+(c.ticket != null ? brl0.format(c.ticket) : 'sem valor')+(c.pedidos != null ? ' · '+c.pedidos+' ped.' : '')+'</span><br><span class="tel">'+telTxt(c)+'</span></div>'+
       '<div class="rt">'+tags(c, s)+action(c)+'</div></div>';
   }).join('') || '<p style="text-align:center;color:var(--ink2);padding:16px">Nenhum cliente neste filtro.</p>';
   document.querySelectorAll('[data-ck]').forEach(function(ck){ ck.addEventListener('change', function(){ var id = ck.getAttribute('data-ck'); if(ck.checked) S.selected[id] = true; else delete S.selected[id]; rows(); }); });
@@ -1483,7 +1498,7 @@ function copyPhones(){
 function exportList(){
   var l = selList(); if(!l.length) l = visible();
   var head = ['nome','telefone','ultimo_pedido','dias_sem_comprar','pedidos','ticket','status','contatado_em'];
-  var lines = [head.join(';')].concat(l.map(function(c){ var d = daysOf(c); return [c.nome, fmtPhone(c.tel), fmtDate(c.ultimo), d, c.pedidos != null ? c.pedidos : '', c.ticket != null ? String(c.ticket).replace('.',',') : '', status(d).t, c.contatado ? fmtDate(c.contatado) : ''].map(function(v){ v = String(v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; }).join(';'); }));
+  var lines = [head.join(';')].concat(l.map(function(c){ var d = daysOf(c); return [c.nome, fmtPhone(c.tel), c.nunca ? '' : fmtDate(c.ultimo), d == null ? '' : d, c.pedidos != null ? c.pedidos : '', c.ticket != null ? String(c.ticket).replace('.',',') : '', status(d).t, c.contatado ? fmtDate(c.contatado) : ''].map(function(v){ v = String(v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; }).join(';'); }));
   var blob = new Blob(['﻿' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'clientes-para-recuperar.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   toast(nf.format(l.length) + ' clientes na lista exportada.');
@@ -1497,7 +1512,7 @@ function rulesHtml(){
   return '<ol class="rules">'+
     '<li><b>No máximo '+lim+' mensagens por dia.</b> A Máquina conta e para sozinha. Número novo ou pouco usado? Comece com 10 a 15 por dia na primeira semana.</li>'+
     '<li><b>Uma de cada vez, com intervalo.</b> A Máquina espera de 30 segundos a 1 minuto entre as mensagens, como uma pessoa faria.</li>'+
-    '<li><b>Só para quem já pediu de você.</b> Nunca para lista comprada ou contato que nunca falou com o restaurante.</li>'+
+    '<li><b>Só para quem já pediu ou se cadastrou com você.</b> Nunca para lista comprada ou contato que nunca falou com o restaurante.</li>'+
     '<li><b>Mensagem com o nome do cliente</b> e um motivo de verdade (cupom, novidade, saudade). Texto igual para todo mundo parece propaganda.</li>'+
     '<li><b>Quem não respondeu, espere '+DIAS_ENTRE_CONTATOS+' dias</b> antes de mandar de novo. A Máquina pula quem foi contatado há menos de '+DIAS_ENTRE_CONTATOS+' dias.</li>'+
     '<li><b>Se alguém pedir para parar, pare.</b> Bloqueios e denúncias são o que derruba um número.</li>'+
@@ -1521,7 +1536,8 @@ function openRules(){
 function openCampaign(list){
   var B = S.base;
   track('recover_click', {qtd:list.length});
-  var camp = S.camp || (S.camp = { msg:'Oi, {nome}! 👋\nSentimos sua falta aqui no '+B.restaurante+'.\n\nPreparamos uma condição especial para você voltar a pedir: {beneficio} com o cupom {cupom}, válido até {prazo}.\n\nÉ só chamar a gente por aqui 😊', cupom:'VOLTEI10', beneficio:'10% de desconto', prazo:'domingo' });
+  var soNunca = list.length && list.every(function(c){ return c.nunca; });
+  var camp = soNunca ? (S.campNovo || (S.campNovo = (function(){ try{ return JSON.parse(lsGet(MSG_KEY + '_novo')); }catch(e){ return null; } })() || { msg:'Oi, {nome}! 👋\nAqui é do '+B.restaurante+'. Você se cadastrou com a gente mas ainda não experimentou nosso cardápio.\n\nQue tal hoje? No primeiro pedido você ganha {beneficio} com o cupom {cupom}, válido até {prazo}.\n\nÉ só chamar a gente por aqui 😊', cupom:'PRIMEIRO10', beneficio:'10% de desconto', prazo:'domingo' })) : (S.camp || (S.camp = { msg:'Oi, {nome}! 👋\nSentimos sua falta aqui no '+B.restaurante+'.\n\nPreparamos uma condição especial para você voltar a pedir: {beneficio} com o cupom {cupom}, válido até {prazo}.\n\nÉ só chamar a gente por aqui 😊', cupom:'VOLTEI10', beneficio:'10% de desconto', prazo:'domingo' }));
   var viaApi = waConnected();
   var recent = function(c){ return c.contatado && (Date.now() - c.contatado) < DIAS_ENTRE_CONTATOS * DAY; };
   var queue = list.filter(function(c){ return waOk(c.tel) && !(viaApi && recent(c)); }), noTel = list.filter(function(c){ return !waOk(c.tel); }).length, pulados = viaApi ? list.filter(function(c){ return waOk(c.tel) && recent(c); }).length : 0, head = queue[0] || list[0], opened = 0;
@@ -1532,7 +1548,7 @@ function openCampaign(list){
   bg.innerHTML =
     '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">'+
       '<div class="m-main" id="mMain">'+
-        '<div class="m-head"><div><h3 id="mTitle">Vamos trazer esses clientes de volta?</h3><p>'+(list.length > 1 ? nf.format(list.length)+' clientes selecionados' : esc(head.nome)+', '+daysOf(head)+' dias sem comprar')+(noTel ? ' · '+pl(noTel,'sem telefone válido','sem telefone válido') : '')+(pulados ? ' · '+pl(pulados,'pulado por ter sido contatado há menos de '+DIAS_ENTRE_CONTATOS+' dias','pulados por terem sido contatados há menos de '+DIAS_ENTRE_CONTATOS+' dias') : '')+'</p></div>'+
+        '<div class="m-head"><div><h3 id="mTitle">'+(soNunca ? 'Vamos convidar para o primeiro pedido?' : 'Vamos trazer esses clientes de volta?')+'</h3><p>'+(list.length > 1 ? nf.format(list.length)+' clientes selecionados' : esc(head.nome)+', '+diasTxt(head))+(noTel ? ' · '+pl(noTel,'sem telefone válido','sem telefone válido') : '')+(pulados ? ' · '+pl(pulados,'pulado por ter sido contatado há menos de '+DIAS_ENTRE_CONTATOS+' dias','pulados por terem sido contatados há menos de '+DIAS_ENTRE_CONTATOS+' dias') : '')+'</p></div>'+
         '<button type="button" class="x" id="mX" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'+
         '<div class="f"><label for="mMsg">Mensagem</label><textarea id="mMsg" rows="7" maxlength="1500">'+esc(camp.msg)+'</textarea><span class="vars">Use <code>{nome}</code>, <code>{cupom}</code>, <code>{beneficio}</code> e <code>{prazo}</code>. Eles são trocados para cada cliente.</span></div>'+
         '<div class="frow"><div class="f"><label for="mCup">Cupom</label><input id="mCup" value="'+esc(camp.cupom)+'" maxlength="30"></div><div class="f"><label for="mBen">Benefício</label><input id="mBen" value="'+esc(camp.beneficio)+'" maxlength="60"></div></div>'+
@@ -1545,10 +1561,10 @@ function openCampaign(list){
     '</div>';
   document.body.appendChild(bg); document.body.style.overflow = 'hidden';
   var prev = document.activeElement;
-  function fill(c){ return camp.msg.replace(/\{nome\}/g, first(c.nome)).replace(/\{cupom\}/g, camp.cupom).replace(/\{beneficio\}/g, camp.beneficio).replace(/\{prazo\}/g, camp.prazo); }
+  function fill(c){ var fn = first(c.nome); if(!/[a-zA-ZÀ-ÿ]/.test(fn)) fn = ''; return camp.msg.replace(/\{nome\}/g, fn).replace(/,\s*([!?.])/g, '$1').replace(/ {2,}/g, ' ').replace(/\{cupom\}/g, camp.cupom).replace(/\{beneficio\}/g, camp.beneficio).replace(/\{prazo\}/g, camp.prazo); }
   function link(c){ return 'https://wa.me/' + c.tel + '?text=' + encodeURIComponent(fill(c)); }
   function preview(c){ $('pvName').textContent = c.nome; $('pvTel').textContent = waOk(c.tel) ? fmtPhone(c.tel) : 'telefone inválido'; $('pvMsg').innerHTML = esc(fill(c)) + '<span class="t">agora</span>'; }
-  function readForm(){ if(!$('mMsg')) return; camp.msg = $('mMsg').value; camp.cupom = $('mCup').value; camp.beneficio = $('mBen').value; camp.prazo = $('mPra').value; lsSet(MSG_KEY, JSON.stringify(camp)); }
+  function readForm(){ if(!$('mMsg')) return; camp.msg = $('mMsg').value; camp.cupom = $('mCup').value; camp.beneficio = $('mBen').value; camp.prazo = $('mPra').value; lsSet(soNunca ? MSG_KEY + '_novo' : MSG_KEY, JSON.stringify(camp)); }
   function sync(){ readForm(); preview(head); if(!viaApi && queue.length === 1) $('mSend').href = link(queue[0]); }
   ['mMsg','mCup','mBen','mPra'].forEach(function(id){ $(id).addEventListener('input', sync); }); sync();
   function markSent(c){ c.contatado = Date.now(); delete S.selected[c.id]; opened++; save(); track(viaApi ? 'campaign_api_sent' : 'campaign_whatsapp_open'); }
@@ -1572,7 +1588,7 @@ function openCampaign(list){
       '<div class="m-head"><div><h3 id="mTitle">Enviando '+(i+1)+' de '+queue.length+'</h3><p>Pode deixar esta tela aberta e ir fazer outra coisa. A Máquina envia uma por vez.</p></div>'+
       '<button type="button" class="x" id="mX2" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'+
       '<div class="progress" aria-hidden="true" style="margin:0"><i style="width:'+(i / queue.length * 100)+'%"></i></div>'+
-      '<div class="wa-item"><span><b>'+esc(c.nome)+'</b><br><span class="tel">'+esc(fmtPhone(c.tel))+' · '+daysOf(c)+' dias sem comprar</span></span><span class="tag ct" id="qState">Enviando…</span></div>'+
+      '<div class="wa-item"><span><b>'+esc(c.nome)+'</b><br><span class="tel">'+esc(fmtPhone(c.tel))+' · '+diasTxt(c)+'</span></span><span class="tag ct" id="qState">Enviando…</span></div>'+
       '<div class="countdown" id="qCount" hidden></div>'+
       '<p style="text-align:center;color:var(--ink2);font-size:14px" id="qInfo">Envios hoje: '+nf.format(S.auth.enviadosHoje)+' de '+nf.format(S.auth.limite)+'</p>'+
       '<div class="step-nav"><button type="button" class="back" id="qPause">Pausar</button><button type="button" class="back" id="qStop">Encerrar envio</button></div>';
@@ -1607,7 +1623,7 @@ function openCampaign(list){
       '<div class="m-head"><div><h3 id="mTitle">Cliente '+(i+1)+' de '+queue.length+'</h3><p>Abra a conversa, aperte enviar no WhatsApp e volte aqui para o próximo.</p></div>'+
       '<button type="button" class="x" id="mX2" aria-label="Fechar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'+
       '<div class="progress" aria-hidden="true" style="margin:0"><i style="width:'+(i / queue.length * 100)+'%"></i></div>'+
-      '<div class="wa-item"><span><b>'+esc(c.nome)+'</b><br><span class="tel">'+esc(fmtPhone(c.tel))+' · '+daysOf(c)+' dias sem comprar</span></span>'+(c.contatado ? '<span class="tag ct">Já contatado</span>' : '')+'</div>'+
+      '<div class="wa-item"><span><b>'+esc(c.nome)+'</b><br><span class="tel">'+esc(fmtPhone(c.tel))+' · '+diasTxt(c)+'</span></span>'+(c.contatado ? '<span class="tag ct">Já contatado</span>' : '')+'</div>'+
       '<a class="btn" id="qOpen" href="'+esc(link(c))+'" target="_blank" rel="noopener" style="background:#25D366;color:#0A2D14">Abrir WhatsApp de '+esc(first(c.nome))+'</a>'+
       '<div class="step-nav"><button type="button" class="back" id="qSkip">Pular este cliente</button><button type="button" class="back" id="qStop">Encerrar envio</button></div>'+
       '<p class="privacy">Envie aos poucos, só para quem já comprou de você, e respeite quem pedir para não receber mais mensagens. Isso protege o seu número.</p>';
