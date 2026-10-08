@@ -459,7 +459,8 @@ tr.sel td{background:var(--accent-soft)}
 .qz .sub{color:var(--ink2);font-size:16px;margin-top:-8px}
 .qopts{display:grid;gap:10px}
 .qopt{display:flex;align-items:center;gap:14px;background:var(--surface);border-radius:18px;padding:16px 18px;box-shadow:inset 0 0 0 1.5px var(--line);font:700 16px/1.3 var(--font);color:var(--ink);text-align:left;cursor:pointer;border:0;transition:transform .12s,box-shadow .12s}
-.qopt:hover{box-shadow:inset 0 0 0 2px var(--accent-text);transform:translateY(-1px)}
+@media (hover:hover){.qopt:hover{box-shadow:inset 0 0 0 2px var(--accent-text);transform:translateY(-1px)}}
+.qopt.picked{box-shadow:inset 0 0 0 2px var(--accent-text);background:var(--accent-soft)}
 .qopt .em{width:42px;height:42px;border-radius:12px;background:var(--bg);display:grid;place-items:center;font-size:22px;flex:none}
 .qopt small{display:block;font-weight:500;color:var(--ink2);font-size:13.5px}
 .qstep{animation:rise .35s ease both;display:grid;gap:16px}
@@ -1076,7 +1077,7 @@ function renderQuiz(){
     root.innerHTML = '<div class="qz">'+top(i + 1)+'<div class="qstep"><h1>'+q.h+'</h1>'+(q.s ? '<p class="sub">'+q.s+'</p>' : '')+
       '<div class="qopts">'+q.o.map(function(o, j){ return '<button type="button" class="qopt" data-i="'+j+'"><span class="em">'+o[0]+'</span><span>'+o[1]+(o[2] ? '<small>'+o[2]+'</small>' : '')+'</span></button>'; }).join('')+'</div>'+
       (i ? '<button type="button" class="qback" id="qzBack">← Voltar</button>' : '')+'</div></div>';
-    root.querySelectorAll('.qopt').forEach(function(b){ b.addEventListener('click', function(){ var o = q.o[+b.getAttribute('data-i')]; L[q.k] = o[3] || o[1]; L.step = i + 1; rxSave(L); track('quiz_step', {passo:i + 1, campo:q.k}); renderQuiz(); window.scrollTo(0,0); }); });
+    root.querySelectorAll('.qopt').forEach(function(b){ b.addEventListener('click', function(){ if(b.classList.contains('picked')) return; b.classList.add('picked'); var o = q.o[+b.getAttribute('data-i')]; L[q.k] = o[3] || o[1]; L.step = i + 1; rxSave(L); track('quiz_step', {passo:i + 1, campo:q.k}); setTimeout(function(){ renderQuiz(); window.scrollTo(0,0); }, 180); }); });
     if($('qzBack')) $('qzBack').addEventListener('click', function(){ L.step = i - 1; rxSave(L); renderQuiz(); });
     return;
   }
